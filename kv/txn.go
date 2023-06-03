@@ -1,8 +1,9 @@
 package kv
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type TxnOpts struct {

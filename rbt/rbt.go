@@ -9,10 +9,12 @@ const (
 	RED
 )
 
+var _ RBTree = (*tree)(nil)
+
 type RBTree interface {
-	Set(key, value []byte) ([]byte, bool)
+	Set(key, value []byte) []byte
 	Get(key []byte) ([]byte, bool)
-	Delete(key []byte) ([]byte, bool)
+	GetSize() int
 }
 
 func NewRedBlackTree() RBTree {

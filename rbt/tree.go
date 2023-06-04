@@ -50,8 +50,6 @@ func (t *tree) rotateRight(n *node) {
 	n.parent = y
 }
 
-func (t *tree) insert(n *node) {
-	if t.root == nil {
-		
-	}
+func (t *tree) GetSize() int {
+	return t.size
 }

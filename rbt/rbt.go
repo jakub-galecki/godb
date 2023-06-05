@@ -4,19 +4,19 @@ package rbt
 
 type color byte
 
-const (
-	BLACK color = iota
-	RED
-)
-
-var _ RBTree = (*tree)(nil)
-
-type RBTree interface {
+type StorageCore interface {
 	Set(key, value []byte) []byte
 	Get(key []byte) ([]byte, bool)
 	GetSize() int
 }
 
-func NewRedBlackTree() RBTree {
+const (
+	BLACK color = iota // 0
+	RED                // 1
+)
+
+var _ StorageCore = (*tree)(nil)
+
+func NewRedBlackTree() StorageCore {
 	return &tree{}
 }

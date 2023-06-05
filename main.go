@@ -1,7 +1,10 @@
 package main
 
-import "godb/kv"
+import "godb/lsmt"
 
 func main() {
-	kv.New()
+	lsmt := lsmt.NewStorageEngine()
+	lsmt.Set([]byte("foo"), []byte("bar"))
+	lsmt.Get([]byte("foo"))
+	lsmt.Delete([]byte("foo"))
 }

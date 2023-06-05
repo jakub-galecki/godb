@@ -21,7 +21,7 @@ func (t *tree) internalSet(n *node) []byte {
 	if t.root == nil {
 		n.color = BLACK
 		t.root = n
-		t.size = 1
+		t.size = len(n.value)
 		return nil
 	}
 
@@ -31,6 +31,7 @@ func (t *tree) internalSet(n *node) []byte {
 		case cmp == 0:
 			oldValue := cur.value
 			cur.value = n.value
+			t.modifySize(n.value, oldValue)
 			return oldValue
 		case cmp < 0:
 			cur = cur.leftChild
@@ -49,7 +50,7 @@ func (t *tree) internalSet(n *node) []byte {
 	}
 
 	t.fixInsert(n)
-	t.size++
+	t.modifySize(n.value, nil)
 
 	return nil
 }
@@ -92,4 +93,8 @@ func (t *tree) fixInsert(n *node) {
 		}
 	}
 	t.root.color = BLACK
+}
+
+func (t *tree) modifySize(new, old []byte) {
+	t.size += len(new) - len(old)
 }

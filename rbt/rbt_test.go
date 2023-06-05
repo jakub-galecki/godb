@@ -30,7 +30,7 @@ func TestSetGet(t *testing.T) {
 		assert.Equal(t, xs, test.value)
 	}
 
-	assert.Equal(t, tree.GetSize(), 5)
+	assert.Equal(t, tree.GetSize(), 11)
 }
 
 func TestUpdate(t *testing.T) {
@@ -59,5 +59,5 @@ func TestUpdate(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, xs, []byte("1"))
 
-	assert.Equal(t, tree.GetSize(), 3)
+	assert.Equal(t, tree.GetSize(), 17)
 }

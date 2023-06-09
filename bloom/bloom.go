@@ -2,44 +2,60 @@ package bloom
 
 import (
 	"hash"
-	"hash/fnv"
+	"hash/maphash"
+	"io"
 )
 
 // TODO : optimize
 
 const (
 	NHashes = 3
+	MaxSize = 10000000
 )
 
 type Filter interface {
 	AddKey([]byte, ...HashFunc)
 	MayContain([]byte, ...HashFunc) bool
+	Read(io.Reader) error
+	Write(io.Writer) error
 }
 
 type bloomFilter struct {
-	maxSize   uint
-	size      uint
-	nHashes   uint // might change later
-	hashFuncs []hash.Hash64
-	arr       []bool
+	MaxSize   uint           `msgpack:"max_size"`
+	Size      uint           `msgpack:"size"`
+	NHashes   uint           `msgpack:"n_hashes"`
+	HashFuncs []hash.Hash64  `msgpack:"-"`
+	Seeds     []maphash.Seed `msgpack:"seeds,as_array"`
+	Arr       []bool         `msgpack:"arr,as_array"`
 }
 
 type HashFunc = func(key []byte, hashFunctions []hash.Hash64) []uint
 
-func initHashFunc(n int) (hashFuncs []hash.Hash64) {
+func initHashFunc(n int, seeds []maphash.Seed) (hashFuncs []hash.Hash64) {
 	for i := 0; i < n; i++ {
-		hashFuncs = append(hashFuncs, fnv.New64())
+		var hash maphash.Hash
+		hash.SetSeed(seeds[i])
+		hashFuncs = append(hashFuncs, &hash)
+	}
+	return
+}
+
+func initSeeds(n int) (seeds []maphash.Seed) {
+	for i := 0; i < n; i++ {
+		seeds = append(seeds, maphash.MakeSeed())
 	}
 	return
 }
 
 func NewFilter(maxSize uint) Filter {
+	seeds := initSeeds(NHashes)
 	return &bloomFilter{
-		maxSize:   maxSize,
-		nHashes:   NHashes,
-		size:      0,
-		hashFuncs: initHashFunc(NHashes),
-		arr:       make([]bool, maxSize),
+		MaxSize:   maxSize,
+		NHashes:   NHashes,
+		Size:      0,
+		Seeds:     seeds,
+		HashFuncs: initHashFunc(NHashes, seeds),
+		Arr:       make([]bool, maxSize),
 	}
 }
 
@@ -62,14 +78,14 @@ func (b *bloomFilter) AddKey(key []byte, hs ...HashFunc) {
 		hFn = hs[0]
 	}
 
-	hashed := hFn(key, b.hashFuncs)
+	hashed := hFn(key, b.HashFuncs)
 
-	for i := uint(0); i < b.nHashes; i++ {
-		arrIdx := hashed[i] % b.maxSize
-		b.arr[arrIdx] = true
+	for i := uint(0); i < b.NHashes; i++ {
+		arrIdx := hashed[i] % b.MaxSize
+		b.Arr[arrIdx] = true
 	}
 
-	b.size++
+	b.Size++
 }
 
 func (b *bloomFilter) MayContain(key []byte, hs ...HashFunc) bool {
@@ -78,11 +94,11 @@ func (b *bloomFilter) MayContain(key []byte, hs ...HashFunc) bool {
 		hFn = hs[0]
 	}
 
-	hashed := hFn(key, b.hashFuncs)
+	hashed := hFn(key, b.HashFuncs)
 
-	for i := uint(0); i < b.nHashes; i++ {
-		arrIdx := hashed[i] % b.maxSize
-		if !b.arr[arrIdx] {
+	for i := uint(0); i < b.NHashes; i++ {
+		arrIdx := hashed[i] % b.MaxSize
+		if !b.Arr[arrIdx] {
 			return false
 		}
 	}

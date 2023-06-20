@@ -2,7 +2,7 @@ package bloom
 
 import (
 	"hash"
-	"hash/maphash"
+	"hash/fnv"
 	"io"
 )
 
@@ -21,40 +21,29 @@ type Filter interface {
 }
 
 type bloomFilter struct {
-	MaxSize   uint           `msgpack:"max_size"`
-	Size      uint           `msgpack:"size"`
-	NHashes   uint           `msgpack:"n_hashes"`
-	HashFuncs []hash.Hash64  `msgpack:"-"`
-	Seeds     []maphash.Seed `msgpack:"seeds,as_array"`
-	Arr       []bool         `msgpack:"arr,as_array"`
+	MaxSize   uint          `msgpack:"max_size"`
+	Size      uint          `msgpack:"size"`
+	NHashes   uint          `msgpack:"n_hashes"`
+	HashFuncs []hash.Hash64 `msgpack:"-"`
+	Arr       []bool        `msgpack:"arr,as_array"`
 }
 
 type HashFunc = func(key []byte, hashFunctions []hash.Hash64) []uint
 
-func initHashFunc(n int, seeds []maphash.Seed) (hashFuncs []hash.Hash64) {
+func initHashFunc(n int) (hashFuncs []hash.Hash64) {
 	for i := 0; i < n; i++ {
-		var hash maphash.Hash
-		hash.SetSeed(seeds[i])
-		hashFuncs = append(hashFuncs, &hash)
-	}
-	return
-}
-
-func initSeeds(n int) (seeds []maphash.Seed) {
-	for i := 0; i < n; i++ {
-		seeds = append(seeds, maphash.MakeSeed())
+		// change to different hashing functions
+		hashFuncs = append(hashFuncs, fnv.New64())
 	}
 	return
 }
 
 func NewFilter(maxSize uint) Filter {
-	seeds := initSeeds(NHashes)
 	return &bloomFilter{
 		MaxSize:   maxSize,
 		NHashes:   NHashes,
 		Size:      0,
-		Seeds:     seeds,
-		HashFuncs: initHashFunc(NHashes, seeds),
+		HashFuncs: initHashFunc(NHashes),
 		Arr:       make([]bool, maxSize),
 	}
 }

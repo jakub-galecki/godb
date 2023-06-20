@@ -39,3 +39,7 @@ func (m *memtable) GetSize() int {
 func (m *memtable) Delete(key []byte) []byte {
 	return m.storage.Set(key, common.TOMBSTONE)
 }
+
+func (m *memtable) Iterator() common.Iterator {
+	return m.storage.Iterator()
+}

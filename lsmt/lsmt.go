@@ -1,6 +1,7 @@
 package lsmt
 
 import (
+	"godb/common"
 	"godb/log"
 	"godb/memtable"
 
@@ -17,6 +18,8 @@ type StorageEngine interface {
 type lsmt struct {
 	mem    memtable.MemTable
 	logger *zap.Logger
+	table  string
+	lsn    uint64
 	// log wal.Wal
 }
 
@@ -44,4 +47,8 @@ func (l *lsmt) Delete(key []byte) []byte {
 
 func (l *lsmt) GetSize() int {
 	return l.mem.GetSize()
+}
+
+func (l *lsmt) Iterator() common.Iterator {
+	return l.mem.Iterator()
 }

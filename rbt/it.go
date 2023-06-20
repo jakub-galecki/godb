@@ -1,7 +1,6 @@
 package rbt
 
 import (
-	"fmt"
 	"godb/common"
 )
 
@@ -22,17 +21,17 @@ func (t *tree) Iterator() common.Iterator {
 	}
 }
 
-func (it iterator) HasNext() bool {
+func (it *iterator) HasNext() bool {
 	return it.cursor != nil
 }
 
-func (it iterator) Next() ([]byte, []byte, error) {
+func (it *iterator) Next() ([]byte, []byte, error) {
 	if !it.HasNext() {
-		return nil, nil, fmt.Errorf("out of records")
+		return nil, nil, common.EndOfIterator
 	}
 
 	cur := it.cursor
-	if cur.rightChild != nil {
+	if it.cursor.rightChild != nil {
 		it.cursor = it.cursor.rightChild
 		for it.cursor.leftChild != nil {
 			it.cursor = it.cursor.leftChild

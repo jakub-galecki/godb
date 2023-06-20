@@ -1,8 +1,0 @@
-# High Level Functions that:
-## Regarding Transactions
-- Begin - begins new transactions
-- Rollback - rollbacks all changes made by the transaction
-- Commit - commit all changes to the global store
-## Regarding key-value store
-- Get 
-- Set

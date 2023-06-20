@@ -1,10 +1,13 @@
 package rbt
 
+import "godb/common"
+
 // based on http://staff.ustc.edu.cn/~csli/graduate/algorithms/book6/chap14.htm
 
 type color byte
 
 type StorageCore interface {
+	common.IteratorCore
 	Set(key, value []byte) []byte
 	Get(key []byte) ([]byte, bool)
 	GetSize() int

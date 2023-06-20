@@ -12,14 +12,15 @@ func (b *bloomFilter) Read(reader io.Reader) error {
 	if err := decoder.Decode(b); err != nil {
 		return err
 	}
-	b.HashFuncs = initHashFunc(int(b.NHashes), b.Seeds)
-	log.Printf("Creating new bloomFilter: size: %v, nHashes: %v, seeds: %v", b.Size, b.NHashes, b.Seeds)
+	b.HashFuncs = initHashFunc(int(b.NHashes))
+	log.Printf("Creating new bloomFilter: size: %v, nHashes: %v", b.Size, b.NHashes)
 	return nil
 }
 
 func (b *bloomFilter) Write(writer io.Writer) error {
 	encoder := msgpack.NewEncoder(writer)
 	encoder.UseArrayEncodedStructs(true)
+	log.Printf("Writing bloomFilter: size: %v, nHashes: %v", b.Size, b.NHashes)
 	if err := encoder.Encode(b); err != nil {
 		return err
 	}

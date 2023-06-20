@@ -24,6 +24,7 @@ func TestBloomFs(t *testing.T) {
 	bloomFilter.AddKey([]byte("foo"))
 	bloomFilter.AddKey([]byte("bar"))
 	bloomFilter.AddKey([]byte("123"))
+
 	f := new(bytes.Buffer)
 	assert.NoError(t, bloomFilter.Write(f))
 

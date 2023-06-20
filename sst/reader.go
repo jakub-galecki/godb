@@ -22,6 +22,8 @@ type reader struct {
 	dbFile    *os.File
 }
 
+var _ Reader = (*reader)(nil)
+
 type ReaderOpts struct {
 	dirPath string
 }

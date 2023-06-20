@@ -17,31 +17,36 @@ type StorageEngine interface {
 
 type lsmt struct {
 	mem    memtable.MemTable
-	logger *zap.Logger
+	logger *zap.SugaredLogger
 	table  string
-	lsn    uint64
 	// log wal.Wal
 }
 
-func NewStorageEngine() StorageEngine {
-	var storage lsmt
-	storage.mem = memtable.NewStorageCore()
-	storage.logger = log.InitLogger()
+func NewStorageEngine(table string) StorageEngine {
+	storage := lsmt{
+		mem:    memtable.NewStorageCore(),
+		logger: log.InitLogger(),
+		table:  table,
+	}
 	return &storage
 }
 
 func (l *lsmt) Set(key, value []byte) []byte {
-	l.logger.Sugar().Debugf("Setting Key [%s] to value [%s]", key, value)
+	l.logger.Debugf("Setting Key [%s] to value [%s]", key, value)
 	return l.mem.Set(key, value)
 }
 
 func (l *lsmt) Get(key []byte) ([]byte, bool) {
-	l.logger.Sugar().Debugf("Getting Key [%s]", key)
-	return l.mem.Get(key)
+	value, found := l.mem.Get(key)
+	if found {
+		return value, found
+	}
+
+	return nil, false
 }
 
 func (l *lsmt) Delete(key []byte) []byte {
-	l.logger.Sugar().Debugf("Deleting Key [%s]", key)
+	l.logger.Debugf("Deleting Key [%s]", key)
 	return l.mem.Delete(key)
 }
 

@@ -2,6 +2,7 @@ package lsmt
 
 import (
 	"godb/common"
+	"godb/level"
 	"godb/log"
 	"godb/memtable"
 
@@ -16,9 +17,14 @@ type StorageEngine interface {
 }
 
 type lsmt struct {
-	mem    memtable.MemTable
 	logger *zap.SugaredLogger
 	table  string
+
+	mem  memtable.MemTable   // mutable
+	sink []memtable.MemTable // immutable
+
+	levels []level.Level
+	// todo: manifest []string
 	// log wal.Wal
 }
 
@@ -31,29 +37,39 @@ func NewStorageEngine(table string) StorageEngine {
 	return &storage
 }
 
-func (l *lsmt) Set(key, value []byte) []byte {
-	l.logger.Debugf("Setting Key [%s] to value [%s]", key, value)
-	return l.mem.Set(key, value)
-}
-
-func (l *lsmt) Get(key []byte) ([]byte, bool) {
-	value, found := l.mem.Get(key)
-	if found {
-		return value, found
-	}
-
-	return nil, false
-}
-
-func (l *lsmt) Delete(key []byte) []byte {
-	l.logger.Debugf("Deleting Key [%s]", key)
-	return l.mem.Delete(key)
-}
-
 func (l *lsmt) GetSize() int {
 	return l.mem.GetSize()
 }
 
 func (l *lsmt) Iterator() common.Iterator {
 	return l.mem.Iterator()
+}
+
+func (l *lsmt) exceededSize() bool {
+	return l.mem.GetSize() == common.MAX_MEMTABLE_THRESHOLD
+}
+
+func (l *lsmt) moveToSink() {
+	l.sink = append(l.sink, l.mem)
+	l.mem = memtable.NewStorageCore()
+}
+
+func (l *lsmt) drainSink() {
+	for _, mem := range l.sink {
+		l.flushMemTable(mem)
+	}
+}
+
+func (l *lsmt) flushMemTable(mem memtable.MemTable) error {
+	if len(l.levels) == 0 {
+		// init level
+		newLevel := level.NewLevel(0, l.table)
+		l.levels = append(l.levels, newLevel)
+	}
+
+	l0 := l.levels[0]
+	if err := l0.AddMemtable(mem); err != nil {
+		return err
+	}
+	return nil
 }

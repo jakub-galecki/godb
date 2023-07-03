@@ -1,6 +1,10 @@
 package sst
 
-import "godb/memtable"
+import (
+	"godb/bloom"
+	"godb/memtable"
+	"godb/sparse"
+)
 
 const (
 	BloomFName       = "bloom.bin"
@@ -9,22 +13,20 @@ const (
 	DBFName          = "db.bin"
 )
 
-type penc struct {
-	key   []byte `msgpack:"k"`
-	value []byte `msgpack:"v"`
+type entry struct {
+	Key   []byte `msgpack:"k,as_array"`
+	Value []byte `msgpack:"v,as_array"`
 }
 
 type Reader interface {
 	Contains([]byte) bool
 	Get([]byte) ([]byte, error)
-	Close() error
+	//Close() error
 }
 
 type Writer interface {
-	Open() error
-	Write([]byte, []byte) error
-	Close() error
 	WriteMemTable(memtable.MemTable) error
+	//Close() error
 }
 
 type SST interface {
@@ -33,10 +35,12 @@ type SST interface {
 }
 
 type sst struct {
-	Reader
-	Writer
+	table   string
+	tableId uint
 
-	table string
+	index  sparse.Index
+	bf     bloom.Filter
+	blocks []Block
 }
 
 func NewSST(table string) SST {
@@ -47,32 +51,9 @@ func NewSST(table string) SST {
 
 	s.table = table
 
-	s.Reader, err = NewReader(&ReaderOpts{
-		dirPath: table,
-	})
-
-	if err != nil {
-		panic(err)
-	}
-
-	s.Writer, err = NewWriter(&WriterOpts{
-		dirPath: table,
-	})
 	if err != nil {
 		panic(err)
 	}
 
 	return &s
-}
-
-func (s *sst) Close() error {
-	if err := s.Reader.Close(); err != nil {
-		return err
-	}
-
-	if err := s.Writer.Close(); err != nil {
-		return err
-	}
-
-	return nil
 }

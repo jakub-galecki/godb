@@ -18,12 +18,12 @@ func (s *sst) Get(k []byte) ([]byte, error) {
 	}
 
 	idx := s.index.Get(k)
-	if idx > len(s.blocks) {
+	if idx > s.blocks.getSize() {
 		return nil, errors.New("index out of bound")
 	}
 
 	// todo: add block caching
-	block := s.blocks[idx]
+	block := s.blocks.getAt(idx)
 
-	return block.Get(k)
+	return block.get(k)
 }

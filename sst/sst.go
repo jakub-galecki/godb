@@ -18,6 +18,13 @@ type entry struct {
 	Value []byte `msgpack:"v,as_array"`
 }
 
+func newEntry(key, value []byte) *entry {
+	return &entry{
+		Key:   key,
+		Value: value,
+	}
+}
+
 type Reader interface {
 	Contains([]byte) bool
 	Get([]byte) ([]byte, error)
@@ -40,7 +47,7 @@ type sst struct {
 
 	index  sparse.Index
 	bf     bloom.Filter
-	blocks []Block
+	blocks blocks
 }
 
 func NewSST(table string) SST {

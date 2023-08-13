@@ -1,58 +1,38 @@
 package sst
 
-import (
-	"bytes"
-	"os"
-)
-
 type Builder interface {
-	WriteNext([]byte, []byte) (Builder, error)
-	Finish() Block
+	Add([]byte, []byte) Builder
+	Finish() blocks
 }
 
-func NewBuilder(db string) Builder {
+func NewBuilder() Builder {
 	return &builder{
-		db: db,
+		offset:      0,
+		readyBlocks: newBlockGroup(),
 	}
 }
 
 type builder struct {
-	bId          int
-	fullBlocks   []*block
+	readyBlocks  blocks
 	currentBlock *block
-	currentFile  *os.File
-	db           string
+	offset       int
 }
 
-func (b *builder) flush() error {
-	b.currentBlock.clearBuf()
-	return nil
+func (b *builder) Add(key, value []byte) Builder {
+	if size := b.currentBlock.getSize(); size >= BLOCK_SIZE {
+		b.offset += size
+		b.readyBlocks.add(b.currentBlock)
+		b.currentBlock = newBlock(b.offset)
+	}
+
+	b.currentBlock.add(newEntry(key, value))
+
+	return b
 }
 
-func (b *builder) WriteNext(key, value []byte) (Builder, error) {
-	if len(key)+len(value) > BLOCK_SIZE {
-		if err := b.flush(); err != nil {
-			return nil, err
-		}
-		b.fullBlocks = append(b.fullBlocks, b.currentBlock)
-		b.currentBlock = newBlock()
+func (b *builder) Finish() blocks {
+	if b.currentBlock.getSize() > 0 {
+		b.readyBlocks.add(b.currentBlock)
 	}
-
-	switch bytes.Compare(b.currentBlock.min, key) {
-	case 1:
-		b.currentBlock.min = key
-	default:
-	}
-
-	switch bytes.Compare(b.currentBlock.max, key) {
-	case 1:
-		b.currentBlock.max = key
-	default:
-	}
-
-	return b, nil
-}
-
-func (b *builder) Finish() Block {
-	return nil
+	return b.readyBlocks
 }

@@ -3,9 +3,10 @@ package rbt
 import (
 	"bytes"
 	"errors"
-	"godb/common"
 	"sort"
 	"testing"
+
+	"godb/common"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -24,8 +25,8 @@ func TestIterator(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		xs := tree.Set(test.key, test.value)
-		assert.Nil(t, xs)
+		tree.Set(test.key, test.value)
+
 	}
 
 	sort.SliceStable(tests, func(i, j int) bool {

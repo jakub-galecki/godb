@@ -1,10 +1,15 @@
 package main
 
-import "godb/lsmt"
+import (
+	"fmt"
+)
 
 func main() {
-	lsmt := lsmt.NewStorageEngine("test")
-	lsmt.Set([]byte("foo"), []byte("bar"))
-	lsmt.Get([]byte("foo"))
+	lsmt := NewStorageEngine("test")
+	_ = lsmt.Set([]byte("foo"), []byte("bar"))
+	val, found := lsmt.Get([]byte("foo"))
+	if found {
+		fmt.Printf("found value: [%s]\n", val)
+	}
 	lsmt.Delete([]byte("foo"))
 }

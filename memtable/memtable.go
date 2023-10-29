@@ -2,30 +2,30 @@ package memtable
 
 import (
 	"godb/common"
-	"godb/rbt"
+	"godb/internal/rbt"
 )
 
 type MemTable interface {
-	rbt.StorageCore
-	Delete(key []byte) []byte
+	common.StorageCore
+	Delete(key []byte)
 }
 
 var _ MemTable = (*memtable)(nil)
 
 type memtable struct {
-	storage rbt.StorageCore
+	storage common.StorageCore
 	size    int
 }
 
-func NewStorageCore() MemTable {
+func NewStorageCore(storageCore common.StorageCore) MemTable {
 	var stc memtable
 	stc.size = 0
 	stc.storage = rbt.NewRedBlackTree()
 	return &stc
 }
 
-func (m *memtable) Set(key, value []byte) []byte {
-	return m.storage.Set(key, value)
+func (m *memtable) Set(key, value []byte) {
+	m.storage.Set(key, value)
 }
 
 func (m *memtable) Get(key []byte) ([]byte, bool) {
@@ -36,8 +36,8 @@ func (m *memtable) GetSize() int {
 	return m.size
 }
 
-func (m *memtable) Delete(key []byte) []byte {
-	return m.storage.Set(key, common.TOMBSTONE)
+func (m *memtable) Delete(key []byte) {
+	m.storage.Set(key, common.TOMBSTONE)
 }
 
 func (m *memtable) Iterator() common.Iterator {

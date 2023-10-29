@@ -1,6 +1,6 @@
-package lsmt
+package main
 
-func (l *lsmt) Get(key []byte) ([]byte, bool) {
+func (l *db) Get(key []byte) ([]byte, bool) {
 	l.logger.Debugf("Gettiing Key [%s]", key)
 	value, found := l.mem.Get(key)
 	if found {

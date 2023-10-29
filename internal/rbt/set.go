@@ -2,16 +2,16 @@ package rbt
 
 import "bytes"
 
-func (t *tree) Set(key, value []byte) []byte {
+func (t *tree) Set(key, value []byte) {
 	n := &node{
 		key:   key,
 		value: value,
 		color: RED,
 	}
-	return t.internalSet(n)
+	t.internalSet(n)
 }
 
-func (t *tree) internalSet(n *node) []byte {
+func (t *tree) internalSet(n *node) {
 	var (
 		parent *node
 
@@ -22,7 +22,7 @@ func (t *tree) internalSet(n *node) []byte {
 		n.color = BLACK
 		t.root = n
 		t.size = len(n.value)
-		return nil
+		return
 	}
 
 	for cur != nil {
@@ -32,7 +32,7 @@ func (t *tree) internalSet(n *node) []byte {
 			oldValue := cur.value
 			cur.value = n.value
 			t.modifySize(n.value, oldValue)
-			return oldValue
+			return
 		case cmp < 0:
 			cur = cur.leftChild
 		default:
@@ -51,8 +51,6 @@ func (t *tree) internalSet(n *node) []byte {
 
 	t.fixInsert(n)
 	t.modifySize(n.value, nil)
-
-	return nil
 }
 
 func (t *tree) fixInsert(n *node) {

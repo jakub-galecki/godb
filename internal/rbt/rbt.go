@@ -6,20 +6,13 @@ import "godb/common"
 
 type color byte
 
-type StorageCore interface {
-	common.IteratorCore
-	Set(key, value []byte) []byte
-	Get(key []byte) ([]byte, bool)
-	GetSize() int
-}
-
 const (
 	BLACK color = iota // 0
 	RED                // 1
 )
 
-var _ StorageCore = (*tree)(nil)
+var _ common.StorageCore = (*tree)(nil)
 
-func NewRedBlackTree() StorageCore {
+func NewRedBlackTree() common.StorageCore {
 	return &tree{}
 }

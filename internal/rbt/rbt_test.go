@@ -20,8 +20,7 @@ func TestSetGet(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		xs := tree.Set(test.key, test.value)
-		assert.Nil(t, xs)
+		tree.Set(test.key, test.value)
 	}
 
 	for _, test := range tests {
@@ -45,15 +44,11 @@ func TestUpdate(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		xs := tree.Set(test.key, test.value)
-		assert.Nil(t, xs)
+		tree.Set(test.key, test.value)
 	}
+	tree.Set([]byte("foo"), []byte("override"))
 
-	xs := tree.Set([]byte("foo"), []byte("override"))
-	assert.Equal(t, xs, []byte("bar"))
-
-	xs = tree.Set([]byte("fizz"), []byte("override"))
-	assert.Equal(t, xs, []byte("buzz"))
+	tree.Set([]byte("fizz"), []byte("override"))
 
 	xs, ok := tree.Get([]byte("0"))
 	assert.True(t, ok)

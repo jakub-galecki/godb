@@ -6,7 +6,7 @@ import (
 )
 
 func TestSst(t *testing.T) {
-	mem := memtable.NewStorageCore()
+	mem := memtable.NewStorageCore(nil)
 	mem.Set([]byte("test"), []byte("1"))
 	mem.Set([]byte("q"), []byte("w"))
 	mem.Set([]byte("e"), []byte("r"))

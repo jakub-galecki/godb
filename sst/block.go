@@ -52,7 +52,7 @@ func (b *block) getMinMax(key []byte) ([]byte, []byte) {
 
 func (b *block) add(e *entry) error {
 	b.min, b.max = b.getMinMax(e.Key)
-	n, err := encode(e, b.buf) // todo: encode when creating new block ???
+	n, err := encode(e, b.buf)
 	if err != nil {
 		return err
 	}

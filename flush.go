@@ -32,8 +32,7 @@ func (l *db) flushMemTable(mem memtable.MemTable) error {
 		l.levels = append(l.levels, newLevel)
 	}
 
-	l0 := l.levels[0]
-	if err := l0.AddMemtable(mem); err != nil {
+	if err := l.l0.AddMemtable(mem); err != nil {
 		return err
 	}
 	return nil

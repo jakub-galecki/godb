@@ -5,17 +5,13 @@ import (
 )
 
 func (s *sst) WriteMemTable(mem memtable.MemTable) error {
-	// it := mem.Iterator()
+	it := mem.Iterator()
 
-	// bb := NewBuilder()
-	// for it.HasNext() {
-	// 	// todo: create data blocks and so on
-	// 	k, v, err := it.Next()
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// }
+	bb := NewBuilder()
+	for it.HasNext() {
+		k, v, _ := it.Next()
+		bb.Add(k, v)
+	}
 
 	return nil
 }

@@ -27,6 +27,8 @@ type db struct {
 	mem  memtable.MemTable   // mutable
 	sink []memtable.MemTable // immutable
 
+	l0 level.Level
+
 	levels []level.Level
 
 	// operations regarding bloom filter

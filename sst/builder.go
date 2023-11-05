@@ -1,38 +1,80 @@
 package sst
 
+import (
+	"godb/vfs"
+	"sync"
+	"time"
+)
+
 type Builder interface {
 	Add([]byte, []byte) Builder
-	Finish() blocks
+	Finish() SST
 }
 
-func NewBuilder() Builder {
-	return &builder{
+func NewBuilder(fpath string) Builder {
+	bdr := &builder{
 		offset:      0,
-		readyBlocks: newBlockGroup(),
+		readyBlocks: make(chan *block),
+		file:        vfs.NewVFS[block](fpath, F_FLAGS, F_PERMISSION),
 	}
+
+	bdr.done.Add(1)
+	return bdr
 }
 
 type builder struct {
-	readyBlocks  blocks
 	currentBlock *block
 	offset       int
+
+	filePath string
+	file     vfs.VFS[block]
+
+	readyBlocks chan *block
+	done        sync.WaitGroup
 }
 
-func (b *builder) Add(key, value []byte) Builder {
-	if size := b.currentBlock.getSize(); size >= BLOCK_SIZE {
-		b.offset += size
-		b.readyBlocks.add(b.currentBlock)
-		b.currentBlock = newBlock(b.offset)
+func (bdr *builder) Add(key, value []byte) Builder {
+	if size := bdr.currentBlock.getSize(); size >= BLOCK_SIZE {
+		bdr.offset += size
+		bdr.readyBlocks <- bdr.currentBlock
+		bdr.currentBlock = newBlock(bdr.offset)
 	}
-
-	b.currentBlock.add(newEntry(key, value))
-
-	return b
+	_ = bdr.currentBlock.add(newEntry(key, value))
+	return bdr
 }
 
-func (b *builder) Finish() blocks {
-	if b.currentBlock.getSize() > 0 {
-		b.readyBlocks.add(b.currentBlock)
+func (bdr *builder) Finish() SST {
+	if bdr.currentBlock.getSize() > 0 {
+		bdr.readyBlocks <- bdr.currentBlock
 	}
-	return b.readyBlocks
+	close(bdr.readyBlocks)
+	bdr.done.Wait()
+
+	return sst{
+		table:   "",
+		tableId: 0,
+		bf:      nil,
+		blocks:  nil,
+	}
+}
+
+func (bdr *builder) readyBlocksWorker() {
+	//timer := time.NewTimer()
+	select {
+	case blk, ok := <-bdr.readyBlocks:
+		if !ok {
+			bdr.done.Done()
+			break
+		}
+		bdr.flushBlock(blk)
+	default:
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func (bdr *builder) flushBlock(b *block) {
+	_, err := bdr.file.Write(b.buf.Bytes())
+	if err != nil {
+		logger.Error("Error while writing block to disk", err)
+	}
 }

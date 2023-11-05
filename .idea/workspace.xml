@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="ALL" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="aaf723a2-a756-42b3-a479-dd4182531c33" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/sst/block_meta.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/actions.go" beforeDir="false" afterPath="$PROJECT_DIR$/actions.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/batch.go" beforeDir="false" afterPath="$PROJECT_DIR$/batch.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db_writer.go" beforeDir="false" afterPath="$PROJECT_DIR$/db_writer.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sparse/sparse.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/sst/block.go" beforeDir="false" afterPath="$PROJECT_DIR$/sst/block.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sst/builder.go" beforeDir="false" afterPath="$PROJECT_DIR$/sst/builder.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sst/encoding.go" beforeDir="false" afterPath="$PROJECT_DIR$/sst/encoding.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sst/sst.go" beforeDir="false" afterPath="$PROJECT_DIR$/sst/sst.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sst/writer.go" beforeDir="false" afterPath="$PROJECT_DIR$/sst/writer.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vfs/reader.go" beforeDir="false" afterPath="$PROJECT_DIR$/vfs/reader.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vfs/vfs.go" beforeDir="false" afterPath="$PROJECT_DIR$/vfs/vfs.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vfs/writer.go" beforeDir="false" afterPath="$PROJECT_DIR$/vfs/writer.go" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Go File" />
+      </list>
+    </option>
+  </component>
+  <component name="GOROOT" url="file:///usr/local/go" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="2XdowDTknveU1GhAUd9azqyNB9U" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultGoTemplateProperty&quot;: &quot;Go File&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.formatter.settings.were.checked&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.migrated.go.modules.settings&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.automatic.dependencies.download&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.go.modules.go.list.on.any.changes.was.set&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;go.import.settings.migrated&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/batman/go/src/godb&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;editor.preferences.fonts.default&quot;
+  }
+}</component>
+  <component name="RunManager">
+    <configuration default="true" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="godb" />
+      <working_directory value="$PROJECT_DIR$" />
+      <go_parameters value="-i" />
+      <kind value="PACKAGE" />
+      <package value="godb" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="GoTestRunConfiguration" factoryName="Go Test">
+      <module name="godb" />
+      <working_directory value="$PROJECT_DIR$" />
+      <go_parameters value="-i" />
+      <kind value="DIRECTORY" />
+      <directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$" />
+      <framework value="gotest" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VgoProject">
+    <settings-migrated>true</settings-migrated>
+  </component>
+</project>

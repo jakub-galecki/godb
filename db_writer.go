@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"godb/memtable"
 )
 
 func (l *db) Set(key, value []byte) error {
@@ -10,18 +11,14 @@ func (l *db) Set(key, value []byte) error {
 	return l.applyBatch(batch)
 }
 
-func (l *db) applyBatch(b *batch) error {
+func (l *db) applyBatch(b *Batch) error {
 	if b.committed.Load() {
 		return fmt.Errorf("batch already commited")
 	}
-
 	// write to wal
-	for _, a := range b.actions {
-		if err := a.applyToMemtable(l.mem); err != nil {
-			return err
-		}
+	if err := applyToMemtable(l.mem, b); err != nil {
+		return err
 	}
-	b.committed.Store(true)
 	l.maybeFlush()
 	return nil
 }
@@ -29,8 +26,18 @@ func (l *db) applyBatch(b *batch) error {
 func (l *db) Delete(key []byte) {
 	l.logger.Debugf("Deleting Key [%s]", key)
 	l.mem.Delete(key)
+	l.maybeFlush()
+}
 
-	if l.exceededSize() {
-		l.moveToSink()
+func applyToMemtable(mem memtable.MemTable, batch *Batch) error {
+	for _, a := range batch.actions {
+		switch a.kind {
+		case "SET":
+			mem.Set(a.key, a.value)
+		case "DEL":
+			mem.Delete(a.key)
+		}
 	}
+	batch.committed.Store(true)
+	return nil
 }

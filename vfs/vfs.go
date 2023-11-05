@@ -7,17 +7,17 @@ import (
 	"go.uber.org/zap"
 )
 
-type VFSReader[T any] interface {
-	Read(*T, func([]byte) (T, error)) (n int, err error)
+type Reader[T any] interface {
+	Read([]byte) (n int, err error)
 }
 
-type VFSWriter[T any] interface {
-	Write(T, func(T) ([]byte, error)) (n int, err error)
+type Writer[T any] interface {
+	Write([]byte) (n int, err error)
 }
 
 type VFS[T any] interface {
-	VFSReader[T]
-	VFSWriter[T]
+	Reader[T]
+	Writer[T]
 }
 
 type vfs[T any] struct {

@@ -4,14 +4,16 @@ import (
 	"godb/memtable"
 )
 
-func (s *sst) WriteMemTable(mem memtable.MemTable) error {
+func WriteMemTable(mem memtable.MemTable, table string) (SST, error) {
 	it := mem.Iterator()
 
-	bb := NewBuilder()
+	sstBuilder := NewBuilder(table)
 	for it.HasNext() {
 		k, v, _ := it.Next()
-		bb.Add(k, v)
+		sstBuilder.Add(k, v)
 	}
+
+	// := sstBuilder.Finish()
 
 	return nil
 }

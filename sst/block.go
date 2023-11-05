@@ -15,7 +15,8 @@ type block struct {
 	min []byte
 	max []byte
 
-	buf *bytes.Buffer
+	buf    *bytes.Buffer
+	offset uint64
 
 	size int
 }
@@ -51,7 +52,7 @@ func (b *block) getMinMax(key []byte) ([]byte, []byte) {
 }
 
 func (b *block) add(e *entry) error {
-	b.min, b.max = b.getMinMax(e.Key)
+	b.min, b.max = b.getMinMax(e.key)
 	n, err := encode(e, b.buf)
 	if err != nil {
 		return err

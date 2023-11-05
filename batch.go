@@ -5,25 +5,25 @@ import (
 	"sync/atomic"
 )
 
-var batchPool = sync.Pool{New: func() interface{} { return new(batch) }}
+var batchPool = sync.Pool{New: func() interface{} { return new(Batch) }}
 
-type batch struct {
+type Batch struct {
 	actions actions
 
 	committed atomic.Bool
 }
 
-func newBatch(acs ...*action) *batch {
-	b := batchPool.Get().(*batch)
+func newBatch(acs ...*action) *Batch {
+	b := batchPool.Get().(*Batch)
 	b.actions = acs
 	return b
 }
 
-func (b *batch) release() {
+func (b *Batch) release() {
 	batchPool.Put(b)
 }
 
-func (b *batch) Set(key, value []byte) *batch {
+func (b *Batch) Set(key, value []byte) *Batch {
 	newAction := newAction(key, value, "SET")
 	b.actions = append(b.actions, &newAction)
 	return b

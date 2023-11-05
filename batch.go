@@ -11,6 +11,8 @@ type Batch struct {
 	actions actions
 
 	committed atomic.Bool
+
+	forceFlush bool
 }
 
 func newBatch(acs ...*action) *Batch {

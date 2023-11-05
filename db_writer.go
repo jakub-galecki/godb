@@ -19,7 +19,8 @@ func (l *db) applyBatch(b *Batch) error {
 	if err := applyToMemtable(l.mem, b); err != nil {
 		return err
 	}
-	l.maybeFlush()
+
+	l.maybeFlush(b.forceFlush)
 	return nil
 }
 

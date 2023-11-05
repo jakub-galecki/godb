@@ -13,7 +13,5 @@ func WriteMemTable(mem memtable.MemTable, table string) (SST, error) {
 		sstBuilder.Add(k, v)
 	}
 
-	// := sstBuilder.Finish()
-
-	return nil
+	return sstBuilder.Finish(), nil
 }

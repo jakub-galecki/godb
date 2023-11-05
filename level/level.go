@@ -44,8 +44,12 @@ func (l *level) Get(key []byte) ([]byte, bool) {
 }
 
 func (l *level) AddMemtable(mem memtable.MemTable) error {
-	table := sst.NewSST(l.table)
-	if err := table.WriteMemTable(mem); err != nil {
+	var (
+		table sst.SST
+		err   error
+	)
+
+	if table, err = sst.WriteMemTable(mem, l.table); err != nil {
 		return err
 	}
 	l.ssts = append(l.ssts, table)

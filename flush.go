@@ -38,15 +38,15 @@ func (l *db) flushMemTable(mem memtable.MemTable) error {
 	return nil
 }
 
-func (l *db) maybeFlush() {
-	if l.exceededSize() {
+func (l *db) maybeFlush(force bool) {
+	if l.exceededSize() || force {
 		l.moveToSink()
 	}
-	l.maybeDrain()
+	l.maybeDrain(force)
 }
 
-func (l *db) maybeDrain() {
-	if len(l.sink) == common.MAX_SINK_SIZE {
+func (l *db) maybeDrain(force bool) {
+	if len(l.sink) == common.MAX_SINK_SIZE || force {
 		l.drainSink()
 	}
 }

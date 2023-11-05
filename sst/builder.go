@@ -1,6 +1,7 @@
 package sst
 
 import (
+	"godb/bloom"
 	"godb/vfs"
 	"sync"
 	"time"
@@ -15,10 +16,12 @@ func NewBuilder(fpath string) Builder {
 	bdr := &builder{
 		offset:      0,
 		readyBlocks: make(chan *block),
+		filePath:    fpath,
 		file:        vfs.NewVFS[block](fpath, F_FLAGS, F_PERMISSION),
+		bf:          bloom.NewFilter(),
 	}
-
 	bdr.done.Add(1)
+	go bdr.readyBlockWorker()
 	return bdr
 }
 
@@ -26,9 +29,9 @@ type builder struct {
 	currentBlock *block
 	offset       int
 
-	filePath string
-	file     vfs.VFS[block]
-
+	filePath    string
+	file        vfs.VFS[block]
+	bf          bloom.Filter
 	readyBlocks chan *block
 	done        sync.WaitGroup
 }
@@ -50,15 +53,13 @@ func (bdr *builder) Finish() SST {
 	close(bdr.readyBlocks)
 	bdr.done.Wait()
 
-	return sst{
+	return &sst{
 		table:   "",
 		tableId: 0,
-		bf:      nil,
-		blocks:  nil,
 	}
 }
 
-func (bdr *builder) readyBlocksWorker() {
+func (bdr *builder) readyBlockWorker() {
 	//timer := time.NewTimer()
 	select {
 	case blk, ok := <-bdr.readyBlocks:

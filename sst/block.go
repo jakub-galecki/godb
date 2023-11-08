@@ -21,9 +21,10 @@ type block struct {
 	size int
 }
 
-func newBlock(offset int) *block {
+func newBlock(offset uint64) *block {
 	return &block{
-		buf: new(bytes.Buffer),
+		buf:    new(bytes.Buffer),
+		offset: offset,
 	}
 }
 
@@ -65,49 +66,49 @@ func (b *block) getSize() int {
 	return b.size
 }
 
-type blockGroup struct {
-	ready []*block
-	size  int
-	// we should also store the information whether this is the first or nth block group
-	// for memetable
-}
+// type blockGroup struct {
+// 	ready []*block
+// 	size  int
+// 	// we should also store the information whether this is the first or nth block group
+// 	// for memetable
+// }
 
-func newBlockGroup() *blockGroup {
-	return &blockGroup{
-		ready: make([]*block, 0),
-		size:  0,
-	}
-}
+// func newBlockGroup() *blockGroup {
+// 	return &blockGroup{
+// 		ready: make([]*block, 0),
+// 		size:  0,
+// 	}
+// }
 
-func (bg *blockGroup) add(b *block) {
-	bg.ready = append(bg.ready, b)
-	bg.size++
-}
+// func (bg *blockGroup) add(b *block) {
+// 	bg.ready = append(bg.ready, b)
+// 	bg.size++
+// }
 
-func (bg *blockGroup) get(key []byte) (*block, error) {
-	// quick search
-	return nil, nil
-}
+// func (bg *blockGroup) get(key []byte) (*block, error) {
+// 	// quick search
+// 	return nil, nil
+// }
 
-func (bg *blockGroup) getSize() int {
-	return bg.size
-}
+// func (bg *blockGroup) getSize() int {
+// 	return bg.size
+// }
 
-func (bg *blockGroup) getAt(i int) *block {
-	return bg.ready[i]
-}
+// func (bg *blockGroup) getAt(i int) *block {
+// 	return bg.ready[i]
+// }
 
-func (bg *blockGroup) iter() blockIterator {
-	return nil
-}
+// func (bg *blockGroup) iter() blockIterator {
+// 	return nil
+// }
 
-type blocks interface {
-	get([]byte) (*block, error)
-	add(*block)
-	iter() blockIterator
-	getSize() int
-	getAt(int) *block
-}
+// type blocks interface {
+// 	get([]byte) (*block, error)
+// 	add(*block)
+// 	iter() blockIterator
+// 	getSize() int
+// 	getAt(int) *block
+// }
 
-type blockIterator interface {
-}
+// type blockIterator interface {
+// }

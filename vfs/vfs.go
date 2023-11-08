@@ -13,6 +13,7 @@ type Reader[T any] interface {
 
 type Writer[T any] interface {
 	Write([]byte) (n int, err error)
+	Flush() error
 }
 
 type VFS[T any] interface {

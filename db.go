@@ -4,7 +4,6 @@ import (
 	"go.uber.org/zap"
 
 	"godb/common"
-	"godb/internal/rbt"
 	"godb/level"
 	"godb/log"
 	"godb/memtable"
@@ -27,22 +26,17 @@ type db struct {
 	mem  memtable.MemTable   // mutable
 	sink []memtable.MemTable // immutable
 
-	l0 level.Level
-
+	l0     level.Level
 	levels []level.Level
-
-	// operations regarding bloom filter
-	// operations regarding sprase index
-	// operations regarding sst
 
 	// todo: manifest []string
 	wl wal.Wal
 }
 
 func NewStorageEngine(table string) StorageEngine {
-	core := rbt.NewRedBlackTree()
+	// core := rbt.NewRedBlackTree()
 	storage := db{
-		mem:    memtable.NewStorageCore(core),
+		mem:    memtable.NewStorageCore(),
 		logger: log.InitLogger(),
 		table:  table,
 	}

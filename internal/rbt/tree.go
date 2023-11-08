@@ -10,8 +10,9 @@ type node struct {
 }
 
 type tree struct {
-	root *node
-	size int
+	root    *node
+	size    int
+	entries int
 }
 
 func (t *tree) rotateLeft(n *node) {
@@ -50,6 +51,10 @@ func (t *tree) rotateRight(n *node) {
 	n.parent = y
 }
 
-func (t *tree) GetSize() int {
+func (t *tree) GetSizeBytes() int {
 	return t.size
+
+}
+func (t *tree) GetSize() int {
+	return t.entries
 }

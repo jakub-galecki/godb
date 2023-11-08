@@ -18,6 +18,8 @@ func (t *tree) internalSet(n *node) {
 		cur = t.root
 	)
 
+	t.entries++
+
 	if t.root == nil {
 		n.color = BLACK
 		t.root = n

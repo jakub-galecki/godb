@@ -28,6 +28,8 @@ type SST interface {
 type sst struct {
 	table   string
 	tableId uint
+
+	meta tableMeta
 }
 
 func NewSST(table string) SST {

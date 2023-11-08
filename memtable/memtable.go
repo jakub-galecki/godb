@@ -17,7 +17,8 @@ type memtable struct {
 	size    int
 }
 
-func NewStorageCore(storageCore common.StorageCore) MemTable {
+// storageCore common.StorageCore
+func NewStorageCore() MemTable {
 	var stc memtable
 	stc.size = 0
 	stc.storage = rbt.NewRedBlackTree()
@@ -34,6 +35,10 @@ func (m *memtable) Get(key []byte) ([]byte, bool) {
 
 func (m *memtable) GetSize() int {
 	return m.size
+}
+
+func (m *memtable) GetSizeBytes() int {
+	return m.storage.GetSizeBytes()
 }
 
 func (m *memtable) Delete(key []byte) {

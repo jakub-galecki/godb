@@ -14,4 +14,5 @@ type StorageCore interface {
 	Set(key, value []byte)
 	Get(key []byte) ([]byte, bool)
 	GetSize() int
+	GetSizeBytes() int
 }

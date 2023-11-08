@@ -2,7 +2,6 @@ package main
 
 import (
 	"godb/common"
-	"godb/internal/rbt"
 	"godb/level"
 	"godb/memtable"
 )
@@ -13,8 +12,8 @@ func (l *db) exceededSize() bool {
 
 func (l *db) moveToSink() {
 	l.sink = append(l.sink, l.mem)
-	core := rbt.NewRedBlackTree()
-	l.mem = memtable.NewStorageCore(core)
+	// core := rbt.NewRedBlackTree()
+	l.mem = memtable.NewStorageCore()
 }
 
 func (l *db) drainSink() {

@@ -27,7 +27,7 @@ func (l *db) applyBatch(b *Batch) error {
 func (l *db) Delete(key []byte) {
 	l.logger.Debugf("Deleting Key [%s]", key)
 	l.mem.Delete(key)
-	l.maybeFlush()
+	l.maybeFlush(false)
 }
 
 func applyToMemtable(mem memtable.MemTable, batch *Batch) error {

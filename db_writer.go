@@ -30,7 +30,7 @@ func (l *db) Delete(key []byte) {
 	l.maybeFlush(false)
 }
 
-func applyToMemtable(mem memtable.MemTable, batch *Batch) error {
+func applyToMemtable(mem *memtable.MemTable, batch *Batch) error {
 	for _, a := range batch.actions {
 		switch a.kind {
 		case "SET":

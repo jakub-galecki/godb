@@ -1,7 +1,5 @@
 package rbt
 
-import "godb/common"
-
 // based on http://staff.ustc.edu.cn/~csli/graduate/algorithms/book6/chap14.htm
 
 type color byte
@@ -11,8 +9,8 @@ const (
 	RED                // 1
 )
 
-var _ common.StorageCore = (*tree)(nil)
-
-func NewRedBlackTree() common.StorageCore {
-	return &tree{}
-}
+//var _ common.StorageCore = (*tree)(nil)
+//
+//func NewRedBlackTree() common.StorageCore {
+//	return &tree{}
+//}

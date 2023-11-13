@@ -1,9 +1,9 @@
 package main
 
 import (
+	rbt "github.com/emirpasic/gods/trees/redblacktree"
 	"go.uber.org/zap"
 
-	"godb/common"
 	"godb/level"
 	"godb/log"
 	"godb/memtable"
@@ -23,8 +23,8 @@ type db struct {
 	logger *zap.SugaredLogger
 	table  string
 
-	mem  memtable.MemTable   // mutable
-	sink []memtable.MemTable // immutable
+	mem  *memtable.MemTable   // mutable
+	sink []*memtable.MemTable // immutable
 
 	l0     level.Level
 	levels []level.Level
@@ -47,6 +47,6 @@ func (l *db) GetSize() int {
 	return l.mem.GetSize()
 }
 
-func (l *db) Iterator() common.Iterator {
+func (l *db) Iterator() rbt.Iterator {
 	return l.mem.Iterator()
 }

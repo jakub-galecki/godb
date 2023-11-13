@@ -23,6 +23,9 @@ type Reader interface {
 
 type SST interface {
 	Reader
+
+	GetTable() string
+	GetTableMeta() tableMeta
 }
 
 type sst struct {
@@ -45,4 +48,12 @@ func NewSST(table string) SST {
 	}
 
 	return &s
+}
+
+func (s *sst) GetTableMeta() tableMeta {
+	return s.meta
+}
+
+func (s *sst) GetTable() string {
+	return s.table
 }

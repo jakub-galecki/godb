@@ -15,16 +15,14 @@ type block struct {
 	min []byte
 	max []byte
 
-	buf    *bytes.Buffer
-	offset uint64
+	buf *bytes.Buffer
 
 	size int
 }
 
-func newBlock(offset uint64) *block {
+func newBlock() *block {
 	return &block{
-		buf:    new(bytes.Buffer),
-		offset: offset,
+		buf: new(bytes.Buffer),
 	}
 }
 

@@ -1,6 +1,7 @@
 package sst
 
 import (
+	"encoding/binary"
 	"fmt"
 	"sync"
 	"time"
@@ -15,6 +16,18 @@ type Builder interface {
 	Finish() SST
 }
 
+type builder struct {
+	currentBlock *block
+	offset       uint64
+	size         uint64
+	filePath     string
+	file         vfs.VFS[block]
+	bf           *bloom.BloomFilter
+	index        *block // one block should be enough for now but should be changes
+	readyBlocks  chan *block
+	done         sync.WaitGroup
+}
+
 func NewBuilder(table string, n int) Builder {
 	fpath := fmt.Sprintf("./%s.db", table)
 	bdr := &builder{
@@ -22,34 +35,27 @@ func NewBuilder(table string, n int) Builder {
 		readyBlocks:  make(chan *block),
 		filePath:     fpath,
 		file:         vfs.NewVFS[block](fpath, F_FLAGS, F_PERMISSION),
-		bf:           *bloom.NewWithEstimates(uint(n), 0.01),
-		currentBlock: newBlock(0),
+		index:        newBlock(),
+		bf:           bloom.NewWithEstimates(uint(n), 0.01),
+		currentBlock: newBlock(),
 	}
 	bdr.done.Add(1)
 	go bdr.readyBlockWorker()
 	return bdr
 }
 
-type builder struct {
-	currentBlock *block
-	offset       uint64
-	size         uint64
-	filePath     string
-	file         vfs.VFS[block]
-	bf           bloom.BloomFilter
-	readyBlocks  chan *block
-	done         sync.WaitGroup
-}
-
 func (bdr *builder) Add(key, value []byte) Builder {
-	if size := bdr.currentBlock.getSize(); size >= BLOCK_SIZE {
-		bdr.offset += uint64(size)
-		bdr.size += uint64(size)
 
+	if size := bdr.currentBlock.getSize(); size >= BLOCK_SIZE {
+		logger.Debug("SST::BUILDER::ADD block size > BLOCK_SIZE %d", size)
 		bdr.readyBlocks <- bdr.currentBlock
-		bdr.currentBlock = newBlock(bdr.offset)
+		bdr.currentBlock = newBlock()
 	}
-	_ = bdr.currentBlock.add(newEntry(key, value))
+	err := bdr.currentBlock.add(newEntry(key, value))
+	if err != nil {
+		panic(err)
+	}
+
 	bdr.bf.Add(key)
 	return bdr
 }
@@ -69,16 +75,30 @@ func (bdr *builder) Finish() SST {
 	meta.dataSize = bdr.size
 
 	bfSize, err := bdr.bf.WriteTo(bdr.file)
+	logger.Debugf("SST::FINISH bfsize: %d", bfSize)
 	if err != nil {
 		panic(err)
 	}
 
 	// meta
-	meta.bfOffset += uint64(bdr.offset)
+	meta.bfOffset = bdr.offset
 	meta.bfSize = uint64(bfSize)
 	bdr.offset += uint64(bfSize)
 
-	meta.writeTo(bdr.file)
+	// index
+	meta.indexOffset = bdr.offset
+
+    n, err := bdr.file.Write(bdr.index.buf.Bytes())
+    if err != nil {
+        panic(err)
+    }
+
+	meta.indexSize = uint64(n)
+    bdr.offset += uint64(n)
+
+	if err := meta.writeTo(bdr.file); err != nil {
+		panic(err)
+	}
 
 	if err := bdr.file.Flush(); err != nil {
 		panic(err)
@@ -93,20 +113,36 @@ func (bdr *builder) Finish() SST {
 
 func (bdr *builder) readyBlockWorker() {
 	//timer := time.NewTimer()
-	select {
-	case blk, ok := <-bdr.readyBlocks:
-		if !ok {
-			bdr.done.Done()
-			break
+	for {
+		select {
+		case blk, ok := <-bdr.readyBlocks:
+			if !ok {
+				bdr.done.Done()
+				return
+			}
+			bdr.flushBlock(blk)
+		default:
+			time.Sleep(10 * time.Millisecond)
 		}
-		bdr.flushBlock(blk)
-	default:
-		time.Sleep(10 * time.Millisecond)
+	}
+
+}
+
+func (bdr *builder) addIndex(min []byte) {
+	offset := make([]byte, 8)
+	binary.BigEndian.PutUint64(offset, bdr.offset)
+	if err := bdr.index.add(&entry{key: min, value: offset}); err != nil {
+		panic(err)
 	}
 }
 
 func (bdr *builder) flushBlock(b *block) {
-	_, err := bdr.file.Write(b.buf.Bytes())
+	n, err := bdr.file.Write(b.buf.Bytes())
+
+	bdr.addIndex(b.min)
+
+	bdr.offset += uint64(n)
+	bdr.size += uint64(n)
 	if err != nil {
 		logger.Error("Error while writing block to disk", err)
 	}

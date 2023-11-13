@@ -12,6 +12,7 @@ require (
 require (
 	github.com/bits-and-blooms/bloom v2.0.3+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect

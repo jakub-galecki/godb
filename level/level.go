@@ -10,7 +10,7 @@ import (
 
 type Level interface {
 	Get(key []byte) ([]byte, bool)
-	AddMemtable(mem memtable.MemTable) error
+	AddMemtable(mem *memtable.MemTable) error
 }
 
 type level struct {
@@ -43,7 +43,7 @@ func (l *level) Get(key []byte) ([]byte, bool) {
 	return nil, false
 }
 
-func (l *level) AddMemtable(mem memtable.MemTable) error {
+func (l *level) AddMemtable(mem *memtable.MemTable) error {
 	var (
 		table sst.SST
 		err   error

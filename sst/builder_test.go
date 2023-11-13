@@ -21,5 +21,7 @@ func TestBuilder(t *testing.T) {
 	ss, err := WriteMemTable(storage, "test")
 	assert.NoError(t, err)
 
-	logger.Debug(ss)
+	logger.Debugf("%s  -> %v", ss.GetTable(), ss.GetTableMeta())
+
+	_ = Open("test")
 }

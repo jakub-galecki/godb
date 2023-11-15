@@ -1,6 +1,7 @@
 package sst
 
 import (
+	"github.com/bits-and-blooms/bloom"
 	"godb/log"
 )
 
@@ -31,6 +32,9 @@ type SST interface {
 type sst struct {
 	table   string
 	tableId uint
+
+	bf  *bloom.BloomFilter
+	idx block
 
 	meta tableMeta
 }

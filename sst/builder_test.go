@@ -20,8 +20,21 @@ func TestBuilder(t *testing.T) {
 
 	ss, err := WriteMemTable(storage, "test")
 	assert.NoError(t, err)
-
 	logger.Debugf("%s  -> %v", ss.GetTable(), ss.GetTableMeta())
 
-	_ = Open("test")
+	fsst := Open("test")
+
+	for i := 0; i < 10; i++ {
+		k := fmt.Sprintf("k%d", i)
+		assert.True(t, fsst.Contains([]byte(k)))
+	}
+
+	for i := 0; i < 10; i++ {
+		k := fmt.Sprintf("k%d", i)
+		v := fmt.Sprintf("v%d", i+100)
+		vFound, found := fsst.Get([]byte(k))
+		assert.NoError(t, found)
+		assert.Equal(t, v, vFound)
+	}
+
 }

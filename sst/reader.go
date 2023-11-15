@@ -3,6 +3,7 @@ package sst
 import (
 	"bytes"
 	"fmt"
+	"godb/common"
 	"os"
 
 	"github.com/bits-and-blooms/bloom"
@@ -48,28 +49,31 @@ func Open(table string) SST {
 		panic(err)
 	}
 
-	bf := bloom.BloomFilter{}
-	bf.ReadFrom(bytes.NewReader(bfBytes))
+	bf := &bloom.BloomFilter{}
+	_, err = bf.ReadFrom(bytes.NewReader(bfBytes))
+	if err != nil {
+		panic(err)
+	}
 
 	return &sst{
 		meta: tm,
+		bf:   bf,
 	}
 }
 
 func (s *sst) Contains(k []byte) bool {
-	// return s.bf.MayContain(k)
-	return true
+	return s.bf.Test(k)
 }
 
 func (s *sst) Get(k []byte) ([]byte, error) {
-	// if !s.Contains(k) {
-	// 	return nil, errors.New("key not found")
-	// }
+	if !s.bf.Test(k) {
+		return nil, common.KeyNotFound
+	}
 
-	// idx := s.index.Get(k)
-	// if idx > s.blocks.getSize() {
-	// 	return nil, errors.New("index out of bound")
-	// }
+	//idx := s.index.Get(k)
+	//if idx > s.blocks.getSize() {
+	//	return nil, errors.New("index out of bound")
+	//}
 
 	// // todo: add block caching
 	// block := s.blocks.getAt(idx)

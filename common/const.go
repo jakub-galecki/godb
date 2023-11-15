@@ -6,6 +6,7 @@ var TOMBSTONE []byte
 
 var (
 	EndOfIterator = errors.New("out of records")
+	KeyNotFound   = errors.New("key not found")
 )
 
 const (

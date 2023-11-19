@@ -2,6 +2,7 @@ package sst
 
 import (
 	"bytes"
+	"fmt"
 )
 
 const (
@@ -13,7 +14,7 @@ const (
 
 type block struct {
 	min []byte
-	max []byte
+	// max []byte
 
 	buf *bytes.Buffer
 
@@ -27,13 +28,27 @@ func newBlock() *block {
 }
 
 func (b *block) get(key []byte) ([]byte, error) {
-	return nil, nil
+	// todo: binary search
+	//e := entry{}
+
+	//for err := decode(b.buf, &e); err == nil; {
+	//	if bytes.Compare(e.key, key) {
+	//		return e.value, nil
+	//	}
+	//}
+	//
+	return nil, fmt.Errorf("key not found")
 }
 
-func (b *block) getMinMax(key []byte) ([]byte, []byte) {
+func (b *block) getMin(key []byte) []byte {
 	var (
-		min, max []byte
+		min []byte
 	)
+
+	if len(b.min) == 0 {
+		return key
+	}
+
 	switch c := bytes.Compare(key, b.min); {
 	case c > 0, c == 0:
 		min = b.min
@@ -41,17 +56,11 @@ func (b *block) getMinMax(key []byte) ([]byte, []byte) {
 		min = key
 	}
 
-	switch c := bytes.Compare(key, b.max); {
-	case c < 0, c == 0:
-		max = b.max
-	case c > 0:
-		max = key
-	}
-	return min, max
+	return min
 }
 
 func (b *block) add(e *entry) error {
-	b.min, b.max = b.getMinMax(e.key)
+	b.min = b.getMin(e.key)
 	n, err := encode(e, b.buf)
 	if err != nil {
 		return err

@@ -23,7 +23,7 @@ type builder struct {
 	filePath     string
 	file         vfs.VFS[block]
 	bf           *bloom.BloomFilter
-	index        *block // one block should be enough for now but should be changes
+	index        *indexBuilder // one block should be enough for now but should be changes
 	readyBlocks  chan *block
 	done         sync.WaitGroup
 }
@@ -35,7 +35,7 @@ func NewBuilder(table string, n int) Builder {
 		readyBlocks:  make(chan *block),
 		filePath:     fpath,
 		file:         vfs.NewVFS[block](fpath, F_FLAGS, F_PERMISSION),
-		index:        newBlock(),
+		index:        newBuilderIndex(),
 		bf:           bloom.NewWithEstimates(uint(n), 0.01),
 		currentBlock: newBlock(),
 	}
@@ -87,14 +87,13 @@ func (bdr *builder) Finish() SST {
 
 	// index
 	meta.indexOffset = bdr.offset
-
-    n, err := bdr.file.Write(bdr.index.buf.Bytes())
-    if err != nil {
-        panic(err)
-    }
+	n, err := bdr.file.Write(bdr.index.buf.Bytes())
+	if err != nil {
+		panic(err)
+	}
 
 	meta.indexSize = uint64(n)
-    bdr.offset += uint64(n)
+	bdr.offset += uint64(n)
 
 	if err := meta.writeTo(bdr.file); err != nil {
 		panic(err)

@@ -11,7 +11,7 @@ func encode(e *entry, w io.Writer) (int, error) {
 	return w.Write(e.encode())
 }
 
-func decode(r io.Reader, e *entry) error {
+func decode(r io.Reader, e *entry) (int, error) {
 	return e.decode(r)
 }
 
@@ -45,38 +45,46 @@ func (e *entry) encode() []byte {
 	return res.Bytes()
 }
 
-func (e *entry) decode(r io.Reader) error {
+func (e *entry) decode(r io.Reader) (int, error) {
 	if e == nil {
-		return fmt.Errorf("nil entry")
+		return 0, fmt.Errorf("nil entry")
 	}
+	total := 0
 
 	keyLenBytes := make([]byte, 8)
-	_, err := r.Read(keyLenBytes)
+	n, err := r.Read(keyLenBytes)
 	if err != nil {
-		return err
+		return 0, err
 	}
+	total += n
+
 	keyLen := binary.BigEndian.Uint64(keyLenBytes)
-	logger.Debugf("read keyLen %d", keyLen)
+	logger.Debugf("keyLen %d", keyLen)
 	key := make([]byte, keyLen)
-	_, err = r.Read(key)
+	n, err = r.Read(key)
 	if err != nil {
-		return err
+		return 0, err
 	}
+	total += n
+	logger.Debugf("key %v", key)
 
 	valueLenBytes := make([]byte, 8)
-	_, err = r.Read(valueLenBytes)
+	n, err = r.Read(valueLenBytes)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	valueLen := binary.BigEndian.Uint64(valueLenBytes)
-	logger.Debugf("read valueLen %d", valueLen)
-	value := make([]byte, valueLen)
-	_, err = r.Read(value)
-	if err != nil {
-		return err
-	}
+	total += n
 
+	valueLen := binary.BigEndian.Uint64(valueLenBytes)
+	logger.Debugf("valueLen %d", valueLen)
+	value := make([]byte, valueLen)
+	n, err = r.Read(value)
+	if err != nil {
+		return 0, err
+	}
+	total += n
+	logger.Debugf("value %v", value)
 	e.key = key
 	e.value = value
-	return nil
+	return total, nil
 }

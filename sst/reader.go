@@ -3,7 +3,6 @@ package sst
 import (
 	"bytes"
 	"fmt"
-	"godb/common"
 	"os"
 
 	"github.com/bits-and-blooms/bloom"
@@ -55,9 +54,16 @@ func Open(table string) SST {
 		panic(err)
 	}
 
+	idxBlock := make([]byte, tm.indexSize)
+	_, err = f.ReadAt(idxBlock, int64(tm.indexOffset))
+	if err != nil {
+		panic(err)
+	}
+
 	return &sst{
 		meta: tm,
 		bf:   bf,
+		idx:  indexFromBuf(bytes.NewBuffer(idxBlock)),
 	}
 }
 
@@ -67,13 +73,19 @@ func (s *sst) Contains(k []byte) bool {
 
 func (s *sst) Get(k []byte) ([]byte, error) {
 	if !s.bf.Test(k) {
-		return nil, common.KeyNotFound
+		return nil, fmt.Errorf("not found in bloom")
 	}
 
-	//idx := s.index.Get(k)
-	//if idx > s.blocks.getSize() {
-	//	return nil, errors.New("index out of bound")
-	//}
+	// todo: format
+	idxEntry, err := s.idx.find(k)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Debugf("offset %d", idxEntry.foffset)
+	if idxEntry.foffset > s.meta.dataSize {
+		return nil, fmt.Errorf("index out of bound")
+	}
 
 	// // todo: add block caching
 	// block := s.blocks.getAt(idx)

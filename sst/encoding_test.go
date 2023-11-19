@@ -19,7 +19,7 @@ func TestEncodeDecode(t *testing.T) {
 	assert.NoError(t, err)
 	logger.Debugf("written bytes: [%d]", n)
 	decodedEntry := new(entry)
-	err = decode(w, decodedEntry)
+	_, err = decode(w, decodedEntry)
 	assert.NoError(t, err)
 	fmt.Printf("decoded entry.key [%s] with value [%s]\n", decodedEntry.key, decodedEntry.value)
 	assert.Equal(t, e.key, decodedEntry.key)

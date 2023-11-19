@@ -59,14 +59,12 @@ func (e *entry) decode(r io.Reader) (int, error) {
 	total += n
 
 	keyLen := binary.BigEndian.Uint64(keyLenBytes)
-	logger.Debugf("keyLen %d", keyLen)
 	key := make([]byte, keyLen)
 	n, err = r.Read(key)
 	if err != nil {
 		return 0, err
 	}
 	total += n
-	logger.Debugf("key %v", key)
 
 	valueLenBytes := make([]byte, 8)
 	n, err = r.Read(valueLenBytes)
@@ -76,15 +74,17 @@ func (e *entry) decode(r io.Reader) (int, error) {
 	total += n
 
 	valueLen := binary.BigEndian.Uint64(valueLenBytes)
-	logger.Debugf("valueLen %d", valueLen)
 	value := make([]byte, valueLen)
 	n, err = r.Read(value)
 	if err != nil {
 		return 0, err
 	}
 	total += n
-	logger.Debugf("value %v", value)
 	e.key = key
 	e.value = value
 	return total, nil
+}
+
+func (e *entry) getSize() int {
+	return len(e.key) + len(e.value) + 16
 }

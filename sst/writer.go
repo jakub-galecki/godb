@@ -4,7 +4,7 @@ import (
 	"godb/memtable"
 )
 
-func WriteMemTable(mem *memtable.MemTable, table string) (SST, error) {
+func WriteMemTable(mem *memtable.MemTable, table string) (*SST, error) {
 	it := mem.Iterator()
 
 	logger.Debugf("MEM SIZE %d", mem.GetSize())

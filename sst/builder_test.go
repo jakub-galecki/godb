@@ -12,29 +12,29 @@ import (
 func TestBuilder(t *testing.T) {
 	storage := memtable.NewStorageCore()
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100000; i++ {
 		k := fmt.Sprintf("k%d", i)
 		v := fmt.Sprintf("v%d", i+100)
 		storage.Set([]byte(k), []byte(v))
 	}
 
-	ss, err := WriteMemTable(storage, "test")
+	_, err := WriteMemTable(storage, "test")
 	assert.NoError(t, err)
-	logger.Debugf("%s  -> %v", ss.GetTable(), ss.GetTableMeta())
+	//logger.Debugf("%s  -> %v", ss.GetTable(), ss.GetTableMeta())
 
 	fsst := Open("test")
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100000; i++ {
 		k := fmt.Sprintf("k%d", i)
 		assert.True(t, fsst.Contains([]byte(k)))
 	}
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100000; i++ {
 		k := fmt.Sprintf("k%d", i)
 		v := fmt.Sprintf("v%d", i+100)
 		vFound, found := fsst.Get([]byte(k))
 		assert.NoError(t, found)
-		assert.Equal(t, v, vFound)
+		assert.Equal(t, []byte(v), vFound)
 	}
 
 }

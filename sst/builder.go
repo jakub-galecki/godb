@@ -13,7 +13,7 @@ import (
 
 type Builder interface {
 	Add([]byte, []byte) Builder
-	Finish() SST
+	Finish() *SST
 }
 
 type builder struct {
@@ -45,13 +45,14 @@ func NewBuilder(table string, n int) Builder {
 }
 
 func (bdr *builder) Add(key, value []byte) Builder {
-
-	if size := bdr.currentBlock.getSize(); size >= BLOCK_SIZE {
-		logger.Debug("SST::BUILDER::ADD block size > BLOCK_SIZE %d", size)
+	entry := newEntry(key, value)
+	// ensure that written block size will not be greater than BLOCK_SIZE
+	if size := entry.getSize() + bdr.currentBlock.getSize(); size > BLOCK_SIZE {
+		// logger.Debug("SST::BUILDER::ADD block size > BLOCK_SIZE %d", size)
 		bdr.readyBlocks <- bdr.currentBlock
 		bdr.currentBlock = newBlock()
 	}
-	err := bdr.currentBlock.add(newEntry(key, value))
+	err := bdr.currentBlock.add(entry)
 	if err != nil {
 		panic(err)
 	}
@@ -60,7 +61,7 @@ func (bdr *builder) Add(key, value []byte) Builder {
 	return bdr
 }
 
-func (bdr *builder) Finish() SST {
+func (bdr *builder) Finish() *SST {
 	var (
 		meta = tableMeta{}
 	)
@@ -103,7 +104,7 @@ func (bdr *builder) Finish() SST {
 		panic(err)
 	}
 
-	return &sst{
+	return &SST{
 		table:   "",
 		tableId: 0,
 		meta:    meta,

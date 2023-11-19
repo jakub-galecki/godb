@@ -33,7 +33,9 @@ func (i *indexBuilder) add(e *entry) error {
 type indexEntry struct {
 	key     []byte
 	foffset uint64
+	blength int
 }
+
 type index struct {
 	off []*indexEntry
 }
@@ -49,12 +51,13 @@ func indexFromBuf(buf *bytes.Buffer) *index {
 
 	curLen, bufLen := 0, buf.Len()
 
-	for n, err = decode(buf, &tmpEnt); err == nil; {
-		logger.Debugf("decoded entry key: [%s], value [%s]", tmpEnt.key, tmpEnt.value)
+	for n, err = decode(buf, &tmpEnt); err == nil; n, err = decode(buf, &tmpEnt) {
 		if len(tmpEnt.key) == 0 && len(tmpEnt.value) == 0 {
 			break
 		}
 		idx.off = append(idx.off, &indexEntry{key: tmpEnt.key, foffset: binary.BigEndian.Uint64(tmpEnt.value)})
+		// logger.Debugf("decoded entry key: [%s], value [%s]", tmpEnt.key, tmpEnt.value)
+
 		curLen += n
 		if curLen >= bufLen {
 			break

@@ -2,7 +2,9 @@ package sst
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/bits-and-blooms/bloom"
@@ -12,7 +14,7 @@ type ReaderOpts struct {
 	dirPath string
 }
 
-func Open(table string) SST {
+func Open(table string) *SST {
 	dbname := fmt.Sprintf("%s.db", table)
 	f, err := os.OpenFile(dbname, os.O_RDONLY, F_PERMISSION)
 	if err != nil {
@@ -60,36 +62,58 @@ func Open(table string) SST {
 		panic(err)
 	}
 
-	return &sst{
+	return &SST{
 		meta: tm,
 		bf:   bf,
 		idx:  indexFromBuf(bytes.NewBuffer(idxBlock)),
+		fref: f,
 	}
 }
 
-func (s *sst) Contains(k []byte) bool {
+func (s *SST) Contains(k []byte) bool {
 	return s.bf.Test(k)
 }
 
-func (s *sst) Get(k []byte) ([]byte, error) {
+func (s *SST) Get(k []byte) ([]byte, error) {
 	if !s.bf.Test(k) {
 		return nil, fmt.Errorf("not found in bloom")
 	}
 
-	// todo: format
+	genCacheKey := func(idx int, off uint64) string {
+		return fmt.Sprintf("%d.%d", idx, off)
+	}
+
+	getFromBlock := func(raw, key []byte) ([]byte, error) {
+		return (&block{buf: bytes.NewBuffer(raw)}).get(k)
+	}
+
+	// todo: reformat
 	idxEntry, err := s.idx.find(k)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Debugf("offset %d", idxEntry.foffset)
+	// logger.Debugf("offset %d", idxEntry.foffset)
 	if idxEntry.foffset > s.meta.dataSize {
 		return nil, fmt.Errorf("index out of bound")
 	}
 
-	// // todo: add block caching
-	// block := s.blocks.getAt(idx)
+	ck := genCacheKey(s.sstId, idxEntry.foffset)
 
-	// return block.get(k)
-	return nil, nil
+	if s.blockCache != nil {
+		if cEntry, err := s.blockCache.Get(ck); err == nil {
+			return getFromBlock(cEntry, k)
+		}
+	}
+
+	rawBlock := make([]byte, BLOCK_SIZE)
+	if _, err := s.fref.ReadAt(rawBlock, int64(idxEntry.foffset)); err != nil && !errors.Is(err, io.EOF) {
+		return nil, err
+	}
+
+	if s.blockCache != nil {
+		err = s.blockCache.Set(ck, rawBlock)
+	}
+
+	return getFromBlock(rawBlock, k)
 }

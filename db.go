@@ -1,6 +1,9 @@
 package main
 
 import (
+	"time"
+
+	"github.com/allegro/bigcache"
 	rbt "github.com/emirpasic/gods/trees/redblacktree"
 	"go.uber.org/zap"
 
@@ -29,16 +32,31 @@ type db struct {
 	l0     level.Level
 	levels []level.Level
 
-	// todo: manifest []string
-	wl wal.Wal
+	// todo: manifest
+	wl         wal.Wal
+	blockCache *bigcache.BigCache
 }
 
 func NewStorageEngine(table string) StorageEngine {
 	// core := rbt.NewRedBlackTree()
+	config := bigcache.Config{
+		Shards:             1024,
+		LifeWindow:         10 * time.Minute,
+		CleanWindow:        5 * time.Minute,
+		MaxEntriesInWindow: 1000 * 10 * 60,
+		MaxEntrySize:       500,
+		Verbose:            true,
+		HardMaxCacheSize:   4096,
+	}
+	cache, err := bigcache.NewBigCache(config)
+	if err != nil {
+		panic(err)
+	}
 	storage := db{
-		mem:    memtable.NewStorageCore(),
-		logger: log.InitLogger(),
-		table:  table,
+		mem:        memtable.NewStorageCore(),
+		logger:     log.InitLogger(),
+		table:      table,
+		blockCache: cache,
 	}
 	return &storage
 }

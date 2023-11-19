@@ -27,7 +27,7 @@ func (l *db) drainSink() {
 func (l *db) flushMemTable(mem *memtable.MemTable) error {
 	if len(l.levels) == 0 {
 		// init level
-		newLevel := level.NewLevel(0, l.table)
+		newLevel := level.NewLevel(0, l.table, l.blockCache)
 		l.levels = append(l.levels, newLevel)
 	}
 

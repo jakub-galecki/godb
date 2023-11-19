@@ -1,6 +1,7 @@
 package level
 
 import (
+	"github.com/allegro/bigcache"
 	"go.uber.org/zap"
 
 	"godb/log"
@@ -18,14 +19,16 @@ type level struct {
 	table  string
 	logger *zap.SugaredLogger
 	//min, max []byte
-	ssts []sst.SST
+	ssts       []*sst.SST
+	blockCache *bigcache.BigCache
 }
 
-func NewLevel(id uint, table string) Level {
+func NewLevel(id uint, table string, cache *bigcache.BigCache) Level {
 	lvl := level{
-		id:     id,
-		table:  table,
-		logger: log.InitLogger(),
+		id:         id,
+		table:      table,
+		logger:     log.InitLogger(),
+		blockCache: cache,
 	}
 
 	lvl.loadSSTs()
@@ -45,7 +48,7 @@ func (l *level) Get(key []byte) ([]byte, bool) {
 
 func (l *level) AddMemtable(mem *memtable.MemTable) error {
 	var (
-		table sst.SST
+		table *sst.SST
 		err   error
 	)
 

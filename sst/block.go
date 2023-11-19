@@ -28,15 +28,18 @@ func newBlock() *block {
 }
 
 func (b *block) get(key []byte) ([]byte, error) {
-	// todo: binary search
-	//e := entry{}
-
-	//for err := decode(b.buf, &e); err == nil; {
-	//	if bytes.Compare(e.key, key) {
-	//		return e.value, nil
-	//	}
-	//}
-	//
+	// maybe: implement block offests and binary search
+	e := entry{}
+	read := 0
+	for n, err := decode(b.buf, &e); err == nil; n, err = decode(b.buf, &e) {
+		if bytes.Compare(e.key, key) == 0 {
+			return e.value, nil
+		}
+		read += n
+		if read >= BLOCK_SIZE {
+			break
+		}
+	}
 	return nil, fmt.Errorf("key not found")
 }
 

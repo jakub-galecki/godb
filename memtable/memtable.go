@@ -2,7 +2,9 @@ package memtable
 
 import (
 	"bytes"
+
 	rbt "github.com/emirpasic/gods/trees/redblacktree"
+
 	"godb/common"
 )
 
@@ -40,7 +42,10 @@ func (m *MemTable) Put(key, value interface{}) {
 
 func (m *MemTable) Get(key []byte) ([]byte, bool) {
 	val, found := m.storage.Get(key)
-	return val.([]byte), found
+	if val != nil {
+		return val.([]byte), found
+	}
+	return nil, false
 }
 
 func (m *MemTable) GetSize() int {

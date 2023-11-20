@@ -11,16 +11,29 @@ func (l *db) exceededSize() bool {
 }
 
 func (l *db) moveToSink() {
+	l.mutex.Lock()
 	l.sink = append(l.sink, l.mem)
 	// core := rbt.NewRedBlackTree()
 	l.mem = memtable.NewStorageCore()
+	l.mutex.Unlock()
 }
 
+// todo: make asynchronous
 func (l *db) drainSink() {
-	for _, mem := range l.sink {
+	var mem *memtable.MemTable
+
+	l.mutex.Lock()
+	if len(l.sink) > 0 {
+		mem = l.sink[0]
+	}
+	l.mutex.Unlock()
+
+	if mem != nil {
+		l.l0Flushed.Add(1)
 		if err := l.flushMemTable(mem); err != nil {
 			l.logger.Error(err)
 		}
+		l.l0Flushed.Done()
 	}
 }
 
@@ -40,12 +53,5 @@ func (l *db) flushMemTable(mem *memtable.MemTable) error {
 func (l *db) maybeFlush(force bool) {
 	if l.exceededSize() || force {
 		l.moveToSink()
-	}
-	l.maybeDrain(force)
-}
-
-func (l *db) maybeDrain(force bool) {
-	if len(l.sink) == common.MAX_SINK_SIZE || force {
-		l.drainSink()
 	}
 }

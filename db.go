@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync"
 	"time"
 
 	"github.com/allegro/bigcache"
@@ -29,12 +30,17 @@ type db struct {
 	mem  *memtable.MemTable   // mutable
 	sink []*memtable.MemTable // immutable
 
-	l0     level.Level
-	levels []level.Level
+	flushChan chan *memtable.MemTable
+
+	l0        level.Level
+	l0Flushed sync.WaitGroup
+	levels    []level.Level
 
 	// todo: manifest
 	wl         wal.Wal
 	blockCache *bigcache.BigCache
+
+	mutex sync.Mutex
 }
 
 func NewStorageEngine(table string) StorageEngine {
@@ -57,7 +63,12 @@ func NewStorageEngine(table string) StorageEngine {
 		logger:     log.InitLogger(),
 		table:      table,
 		blockCache: cache,
+		l0:         level.NewLevel(0, table, cache),
+		flushChan:  make(chan *memtable.MemTable),
 	}
+
+	go storage.drainSink()
+
 	return &storage
 }
 

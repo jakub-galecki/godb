@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+
 	"godb/memtable"
 )
 
 func (l *db) Set(key, value []byte) error {
-	l.logger.Debugf("Setting Key [%s] to value [%s]", key, value)
 	batch := newBatch().Set(key, value)
 	return l.applyBatch(batch)
 }

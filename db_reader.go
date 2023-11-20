@@ -1,7 +1,6 @@
 package main
 
 func (l *db) Get(key []byte) ([]byte, bool) {
-	l.logger.Debugf("Gettiing Key [%s]", key)
 	value, found := l.mem.Get(key)
 	if found {
 		return value, found
@@ -11,6 +10,13 @@ func (l *db) Get(key []byte) ([]byte, bool) {
 		value, found := mem.Get(key)
 		if found {
 			return value, found
+		}
+	}
+
+	{
+		l.l0Flushed.Wait()
+		if val, found := l.l0.Get(key); found {
+			return val, found
 		}
 	}
 

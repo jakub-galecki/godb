@@ -17,27 +17,36 @@ type Builder interface {
 }
 
 type builder struct {
+	table        string
 	currentBlock *block
 	offset       uint64
 	size         uint64
-	filePath     string
+	fname        string
+	dir          string
 	file         vfs.VFS[block]
 	bf           *bloom.BloomFilter
 	index        *indexBuilder // one block should be enough for now but should be changes
 	readyBlocks  chan *block
 	done         sync.WaitGroup
+	sstId        int
+	level        int
 }
 
-func NewBuilder(table string, n int) Builder {
-	fpath := fmt.Sprintf("./%s.db", table)
+func NewBuilder(table string, n, level, id int) Builder {
+	dir := fmt.Sprintf("/tmp/l%d", level)
+	file := fmt.Sprintf("%s.%d.db", table, id)
 	bdr := &builder{
+		table:        table,
 		offset:       0,
 		readyBlocks:  make(chan *block),
-		filePath:     fpath,
-		file:         vfs.NewVFS[block](fpath, F_FLAGS, F_PERMISSION),
+		fname:        file,
+		dir:          dir,
+		file:         vfs.NewVFS[block](dir, file, F_FLAGS, F_PERMISSION),
 		index:        newBuilderIndex(),
 		bf:           bloom.NewWithEstimates(uint(n), 0.01),
 		currentBlock: newBlock(),
+		sstId:        id,
+		level:        level,
 	}
 	bdr.done.Add(1)
 	go bdr.readyBlockWorker()
@@ -76,7 +85,7 @@ func (bdr *builder) Finish() *SST {
 	meta.dataSize = bdr.size
 
 	bfSize, err := bdr.bf.WriteTo(bdr.file)
-	logger.Debugf("SST::FINISH bfsize: %d", bfSize)
+	//logger.Debugf("SST::FINISH bfsize: %d", bfSize)
 	if err != nil {
 		panic(err)
 	}
@@ -105,9 +114,12 @@ func (bdr *builder) Finish() *SST {
 	}
 
 	return &SST{
-		table:   "",
-		tableId: 0,
-		meta:    meta,
+		table: bdr.table,
+		meta:  meta,
+		bf:    bdr.bf,
+		idx:   indexFromBuf(bdr.index.buf),
+		fref:  vfs.NewVFS[block](bdr.dir, bdr.fname, F_READ, F_PERMISSION).GetFileReference(),
+		sstId: bdr.sstId,
 	}
 }
 

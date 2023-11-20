@@ -15,15 +15,16 @@ type Level interface {
 }
 
 type level struct {
-	id     uint
+	id     int
 	table  string
 	logger *zap.SugaredLogger
 	//min, max []byte
 	ssts       []*sst.SST
 	blockCache *bigcache.BigCache
+	curId      int
 }
 
-func NewLevel(id uint, table string, cache *bigcache.BigCache) Level {
+func NewLevel(id int, table string, cache *bigcache.BigCache) Level {
 	lvl := level{
 		id:         id,
 		table:      table,
@@ -39,8 +40,6 @@ func (l *level) Get(key []byte) ([]byte, bool) {
 	for _, tbl := range l.ssts {
 		if value, err := tbl.Get(key); err == nil {
 			return value, true
-		} else {
-			l.logger.Errorf("[level::Get] error while getting: %v", err)
 		}
 	}
 	return nil, false
@@ -52,10 +51,11 @@ func (l *level) AddMemtable(mem *memtable.MemTable) error {
 		err   error
 	)
 
-	if table, err = sst.WriteMemTable(mem, l.table); err != nil {
+	if table, err = sst.WriteMemTable(mem, l.table, l.blockCache, l.curId, l.id); err != nil {
 		return err
 	}
 	l.ssts = append(l.ssts, table)
+	l.curId++
 	return nil
 }
 

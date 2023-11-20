@@ -35,7 +35,7 @@ const (
 
 type SST struct {
 	table   string
-	tableId uint
+	tableId int
 
 	bf   *bloom.BloomFilter
 	idx  *index

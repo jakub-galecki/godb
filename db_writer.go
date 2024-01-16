@@ -15,7 +15,11 @@ func (l *db) applyBatch(b *Batch) error {
 	if b.committed.Load() {
 		return fmt.Errorf("batch already commited")
 	}
-	// write to wal
+
+	if err := l.writeToWal(b); err != nil {
+		return err
+	}
+
 	if err := applyToMemtable(l.mem, b); err != nil {
 		return err
 	}
@@ -40,5 +44,14 @@ func applyToMemtable(mem *memtable.MemTable, batch *Batch) error {
 		}
 	}
 	batch.committed.Store(true)
+	return nil
+}
+
+func (l *db) writeToWal(b *Batch) error {
+	for _, a := range b.actions {
+		b.wg.Add(1)
+		l.wl.Write(a.repr(), b.wg)
+		b.wg.Wait()
+	}
 	return nil
 }

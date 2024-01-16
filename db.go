@@ -37,7 +37,7 @@ type db struct {
 	levels    []level.Level
 
 	// todo: manifest
-	wl         wal.Wal
+	wl         *wal.Wal
 	blockCache *bigcache.BigCache
 
 	mutex sync.Mutex
@@ -65,6 +65,11 @@ func NewStorageEngine(table string) StorageEngine {
 		blockCache: cache,
 		l0:         level.NewLevel(0, table, cache),
 		flushChan:  make(chan *memtable.MemTable),
+	}
+
+	storage.wl, err = wal.NewWal(nil)
+	if err != nil {
+		panic(err)
 	}
 
 	go storage.drainSink()

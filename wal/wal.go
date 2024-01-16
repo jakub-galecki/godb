@@ -1,23 +1,181 @@
 package wal
 
-type Wal interface {
-	WriteEntry(WalEntry) error
+import (
+	"bufio"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
+)
+
+/*
+NOTE
+	For now this is the simple implementation with single log file without
+	any segments.
+*/
+
+// ERRORS
+var (
+	// exported
+	ErrPathFile = errors.New("provied path points to a file instead of directory")
+)
+
+type WalOpts struct {
+	Dir string
+
+	SyncInterval time.Duration
+	Encoder      func([]byte) []byte
+	Sync         bool
+	// TimeFormat   string
+	// Logger *zap.Logger
+	// todo: create Segment
 }
 
-type wal struct {
-	file WalFs
+func GetDefaultOpts(dir string) *WalOpts {
+	return &WalOpts{
+		Dir:          dir,
+		SyncInterval: time.Second,
+		Encoder:      func(b []byte) []byte { return b },
+		Sync:         true,
+		// TimeFormat:   "2001-12-01:",
+	}
 }
 
-func Init(filePath string) (*wal, error) {
-	f, err := NewFile(filePath)
+type internalEncoder func(data []byte) []byte
+
+type Wal struct {
+	dirPath string
+
+	mu struct {
+		sync.Mutex
+
+		file *os.File
+		off  int64
+		size int64
+		// seqId int64
+		lsn int
+	}
+
+	// atomic struct {
+	// }
+
+	syncInterval time.Duration
+	syncTicker   *time.Ticker
+	fsync        bool
+	encd         func([]byte) []byte
+	buf          *bufio.Writer
+}
+
+func NewWal(opts *WalOpts) (*Wal, error) {
+	var (
+		makeDir = func(path string) error {
+			if err := os.MkdirAll(path, 0777); err != nil {
+				if errors.Is(err, os.ErrExist) {
+					finfo, err := os.Stat(path)
+					if err != nil {
+						return err
+					}
+					if !finfo.IsDir() {
+						return ErrPathFile
+					}
+					return nil
+				}
+				return err
+			}
+			return nil
+		}
+
+		makeFile = func(path, fname string) (*os.File, error) {
+			fpath := filepath.Join(path, fname)
+			return os.OpenFile(fpath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		}
+	)
+
+	if opts == nil {
+		opts = GetDefaultOpts("./")
+	}
+
+	path, err := filepath.Abs(opts.Dir + "/wal/")
 	if err != nil {
 		return nil, err
 	}
-	return &wal{
-		file: f,
-	}, nil
+
+	wl := &Wal{
+		dirPath:      path,
+		syncInterval: opts.SyncInterval,
+		syncTicker:   time.NewTicker(opts.SyncInterval),
+		fsync:        opts.Sync,
+		encd:         opts.Encoder,
+	}
+
+	if err := makeDir(path); err != nil {
+		return nil, err
+	}
+
+	wl.mu.file, err = makeFile(path, "0.0.log")
+	if err != nil {
+		return nil, err
+	}
+	wl.buf = bufio.NewWriter(wl.mu.file)
+
+	go wl.runSyncWorker()
+
+	return wl, nil
 }
 
-func (w *wal) WriteEntry(e WalEntry) error {
-	return w.file.Append(e)
+func (w *Wal) internalEncode(b []byte) []byte {
+	lsn := w.mu.lsn
+	return []byte(fmt.Sprintf("%v %d %s\n", time.Now().Format(time.RFC3339), lsn, b))
+}
+
+func (w *Wal) runSyncWorker() {
+	for range w.syncTicker.C {
+		w.mu.Lock()
+		w.sync()
+		w.mu.Unlock()
+	}
+}
+
+// sync requiers to hold lock on mu
+func (w *Wal) sync() error {
+	return w.mu.file.Sync()
+}
+
+func (w *Wal) Write(data []byte, wg *sync.WaitGroup) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	enc := w.internalEncode(w.encd(data))
+	if _, err := w.mu.file.Write(enc); err != nil {
+		return err
+	}
+
+	if err := w.sync(); err != nil {
+		return err
+	}
+
+	w.mu.lsn += 1
+
+	if wg != nil {
+		wg.Done()
+	}
+
+	return nil
+}
+
+func (w *Wal) Close() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if err := w.sync(); err != nil {
+		return err
+	}
+
+	if err := w.mu.file.Close(); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 type actions []*action
 
 type action struct {
@@ -14,4 +16,8 @@ func newAction(key, value []byte, kind string) action {
 		key:   key,
 		value: value,
 	}
+}
+
+func (a *action) repr() []byte {
+	return []byte(fmt.Sprintf("%s %s %s", a.kind, a.key, a.value))
 }

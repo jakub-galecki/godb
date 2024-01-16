@@ -13,10 +13,13 @@ type Batch struct {
 	committed atomic.Bool
 
 	forceFlush bool
+	wg         *sync.WaitGroup
+	// db *db
 }
 
 func newBatch(acs ...*action) *Batch {
 	b := batchPool.Get().(*Batch)
+	b.wg = &sync.WaitGroup{}
 	b.actions = acs
 	return b
 }

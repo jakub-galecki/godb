@@ -16,7 +16,7 @@ func main() {
 
 	lsmt := NewStorageEngine("test")
 	for i := 0; i < 15000; i++ {
-		_ = lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte("bar"))
+		_ = lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))
 	}
 	for i := 0; i < 15000; i++ {
 		val, found := lsmt.Get([]byte(fmt.Sprintf("foo.%d", i)))

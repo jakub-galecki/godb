@@ -15,7 +15,7 @@ import (
 )
 
 type StorageEngine interface {
-	Delete(key []byte)
+	Delete(key []byte) error
 	Set(key, value []byte) error
 	Get(key []byte) ([]byte, bool)
 	GetSize() int

@@ -5,6 +5,12 @@ import (
 	"sync/atomic"
 )
 
+const (
+	SET = iota
+	GET
+	DELETE
+)
+
 var batchPool = sync.Pool{New: func() interface{} { return new(Batch) }}
 
 type Batch struct {
@@ -29,7 +35,13 @@ func (b *Batch) release() {
 }
 
 func (b *Batch) Set(key, value []byte) *Batch {
-	newAction := newAction(key, value, "SET")
+	newAction := newAction(key, value, SET)
+	b.actions = append(b.actions, &newAction)
+	return b
+}
+
+func (b *Batch) Delete(key []byte) *Batch {
+	newAction := newAction(key, nil, DELETE)
 	b.actions = append(b.actions, &newAction)
 	return b
 }

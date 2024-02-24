@@ -11,6 +11,11 @@ func (l *db) Set(key, value []byte) error {
 	return l.applyBatch(batch)
 }
 
+func (l *db) Delete(key []byte) error {
+	batch := newBatch().Delete(key)
+	return l.applyBatch(batch)
+}
+
 func (l *db) applyBatch(b *Batch) error {
 	if b.committed.Load() {
 		return fmt.Errorf("batch already commited")
@@ -28,18 +33,12 @@ func (l *db) applyBatch(b *Batch) error {
 	return nil
 }
 
-func (l *db) Delete(key []byte) {
-	l.logger.Debugf("Deleting Key [%s]", key)
-	l.mem.Delete(key)
-	l.maybeFlush(false)
-}
-
 func applyToMemtable(mem *memtable.MemTable, batch *Batch) error {
 	for _, a := range batch.actions {
 		switch a.kind {
-		case "SET":
+		case SET:
 			mem.Set(a.key, a.value)
-		case "DEL":
+		case DELETE:
 			mem.Delete(a.key)
 		}
 	}

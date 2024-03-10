@@ -79,6 +79,8 @@ func (s *SST) Get(k []byte) ([]byte, error) {
 		return nil, fmt.Errorf("not found in bloom")
 	}
 
+	fmt.Printf("Reading from file key %s\n", k)
+
 	genCacheKey := func(idx int, off uint64) string {
 		return fmt.Sprintf("%d.%d", idx, off)
 	}

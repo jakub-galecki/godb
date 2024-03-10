@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"godb/common"
 	"godb/vfs"
 
 	"github.com/bits-and-blooms/bloom"
@@ -32,8 +33,9 @@ type builder struct {
 	level        int
 }
 
-func NewBuilder(table string, n, level, id int) Builder {
-	dir := fmt.Sprintf("/tmp/l%d", level)
+func NewBuilder(path, table string, n, level, id int) Builder {
+	common.EnsureDir(fmt.Sprintf("%s/%s", path, table))
+	dir := fmt.Sprintf("%s/%s/l%d", path, table, level)
 	file := fmt.Sprintf("%s.%d.db", table, id)
 	bdr := &builder{
 		table:        table,
@@ -137,7 +139,6 @@ func (bdr *builder) readyBlockWorker() {
 			time.Sleep(10 * time.Millisecond)
 		}
 	}
-
 }
 
 func (bdr *builder) addIndex(min []byte) {

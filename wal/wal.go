@@ -3,8 +3,8 @@ package wal
 import (
 	"bufio"
 	"crypto/md5"
-	"errors"
 	"fmt"
+	"godb/common"
 	"os"
 	"path/filepath"
 	"sync"
@@ -16,12 +16,6 @@ NOTE
 	For now this is the simple implementation with single log file without
 	any segments.
 */
-
-// ERRORS
-var (
-	// exported
-	ErrPathFile = errors.New("provied path points to a file instead of directory")
-)
 
 type WalOpts struct {
 	Dir string
@@ -69,23 +63,6 @@ type Wal struct {
 
 func NewWal(opts *WalOpts) (*Wal, error) {
 	var (
-		makeDir = func(path string) error {
-			if err := os.MkdirAll(path, 0777); err != nil {
-				if errors.Is(err, os.ErrExist) {
-					finfo, err := os.Stat(path)
-					if err != nil {
-						return err
-					}
-					if !finfo.IsDir() {
-						return ErrPathFile
-					}
-					return nil
-				}
-				return err
-			}
-			return nil
-		}
-
 		makeFile = func(path, fname string) (*os.File, error) {
 			fpath := filepath.Join(path, fname)
 			return os.OpenFile(fpath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -109,7 +86,7 @@ func NewWal(opts *WalOpts) (*Wal, error) {
 		encd:         opts.Encoder,
 	}
 
-	if err := makeDir(path); err != nil {
+	if err := common.EnsureDir(path); err != nil {
 		return nil, err
 	}
 

@@ -22,12 +22,14 @@ type level struct {
 	ssts       []*sst.SST
 	blockCache *bigcache.BigCache
 	curId      int
+	path       string
 }
 
-func NewLevel(id int, table string, cache *bigcache.BigCache) Level {
+func NewLevel(id int, path, table string, cache *bigcache.BigCache) Level {
 	lvl := level{
 		id:         id,
 		table:      table,
+		path:       path,
 		logger:     log.InitLogger(),
 		blockCache: cache,
 	}
@@ -51,7 +53,7 @@ func (l *level) AddMemtable(mem *memtable.MemTable) error {
 		err   error
 	)
 
-	if table, err = sst.WriteMemTable(mem, l.table, l.blockCache, l.curId, l.id); err != nil {
+	if table, err = sst.WriteMemTable(mem, l.path, l.table, l.blockCache, l.curId, l.id); err != nil {
 		return err
 	}
 	l.ssts = append(l.ssts, table)

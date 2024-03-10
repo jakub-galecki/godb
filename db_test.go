@@ -8,7 +8,7 @@ import (
 )
 
 func TestCore(t *testing.T) {
-	lsmt := NewStorageEngine("test")
+	lsmt := NewStorageEngine("./", "test")
 	for i := 0; i < 2000; i++ {
 		_ = lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))
 	}

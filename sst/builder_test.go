@@ -18,7 +18,7 @@ func TestBuilder(t *testing.T) {
 		storage.Set([]byte(k), []byte(v))
 	}
 
-	_, err := WriteMemTable(storage, "test", nil, 0, 0)
+	_, err := WriteMemTable(storage, "./", "test", nil, 0, 0)
 	assert.NoError(t, err)
 	//logger.Debugf("%s  -> %v", ss.GetTable(), ss.GetTableMeta())
 

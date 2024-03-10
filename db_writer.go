@@ -49,7 +49,7 @@ func applyToMemtable(mem *memtable.MemTable, batch *Batch) error {
 func (l *db) writeToWal(b *Batch) error {
 	for _, a := range b.actions {
 		b.wg.Add(1)
-		l.wl.Write(a.repr(), b.wg)
+		l.wl.Write(a.byte(), b.wg)
 		b.wg.Wait()
 	}
 	return nil

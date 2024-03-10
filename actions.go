@@ -18,6 +18,6 @@ func newAction(key, value []byte, kind int) action {
 	}
 }
 
-func (a *action) repr() []byte {
+func (a *action) byte() []byte {
 	return []byte(fmt.Sprintf("%d %s %s", a.kind, a.key, a.value))
 }

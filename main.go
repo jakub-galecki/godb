@@ -14,15 +14,13 @@ func main() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	lsmt := NewStorageEngine("test")
-	for i := 0; i < 15000; i++ {
+	lsmt := NewStorageEngine(".", "test")
+	for i := 0; i < 1000000; i++ {
 		_ = lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))
 	}
-	for i := 0; i < 15000; i++ {
-		val, found := lsmt.Get([]byte(fmt.Sprintf("foo.%d", i)))
-		if found {
-			fmt.Printf("found value: [%s]\n", val)
-		}
+	for i := 0; i < 1000000; i++ {
+		_, _ = lsmt.Get([]byte(fmt.Sprintf("foo.%d", i)))
+
 	}
 	lsmt.Delete([]byte("foo"))
 

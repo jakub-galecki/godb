@@ -8,6 +8,7 @@ import (
 	rbt "github.com/emirpasic/gods/trees/redblacktree"
 	"go.uber.org/zap"
 
+	"godb/common"
 	"godb/level"
 	"godb/log"
 	"godb/memtable"
@@ -26,15 +27,16 @@ type StorageEngine interface {
 type db struct {
 	logger *zap.SugaredLogger
 	table  string
+	path   string
 
 	mem  *memtable.MemTable   // mutable
 	sink []*memtable.MemTable // immutable
 
 	flushChan chan *memtable.MemTable
 
-	l0        level.Level
-	l0Flushed sync.WaitGroup
-	levels    []level.Level
+	l0 level.Level
+	// l0Flushed sync.WaitGroup
+	levels []level.Level
 
 	// todo: manifest
 	wl         *wal.Wal
@@ -43,7 +45,7 @@ type db struct {
 	mutex sync.Mutex
 }
 
-func NewStorageEngine(table string) StorageEngine {
+func NewStorageEngine(path, table string) StorageEngine {
 	// core := rbt.NewRedBlackTree()
 	config := bigcache.Config{
 		Shards:             1024,
@@ -58,15 +60,16 @@ func NewStorageEngine(table string) StorageEngine {
 	if err != nil {
 		panic(err)
 	}
+
 	storage := db{
 		mem:        memtable.NewStorageCore(),
 		logger:     log.InitLogger(),
 		table:      table,
 		blockCache: cache,
-		l0:         level.NewLevel(0, table, cache),
+		l0:         level.NewLevel(0, path, table, cache),
 		flushChan:  make(chan *memtable.MemTable),
 	}
-
+	common.EnsureDir(path)
 	storage.wl, err = wal.NewWal(nil)
 	if err != nil {
 		panic(err)

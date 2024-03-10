@@ -13,11 +13,9 @@ func (l *db) Get(key []byte) ([]byte, bool) {
 		}
 	}
 
-	{
-		l.l0Flushed.Wait()
-		if val, found := l.l0.Get(key); found {
-			return val, found
-		}
+	// l.l0Flushed.Wait()
+	if val, found := l.l0.Get(key); found {
+		return val, found
 	}
 
 	for _, lvl := range l.levels {

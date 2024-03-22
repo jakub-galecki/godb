@@ -104,6 +104,7 @@ func (s *SST) Get(k []byte) ([]byte, error) {
 
 	if s.blockCache != nil {
 		if cEntry, err := s.blockCache.Get(ck); err == nil {
+			logger.Debugf("got block from cache [%s]", ck)
 			return getFromBlock(cEntry, k)
 		}
 	}
@@ -115,6 +116,9 @@ func (s *SST) Get(k []byte) ([]byte, error) {
 
 	if s.blockCache != nil {
 		err = s.blockCache.Set(ck, rawBlock)
+		if err != nil {
+			logger.Errorf("error while setting block in cache: %v", err)
+		}
 	}
 
 	return getFromBlock(rawBlock, k)

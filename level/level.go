@@ -1,9 +1,9 @@
 package level
 
 import (
-	"github.com/allegro/bigcache"
 	"go.uber.org/zap"
 
+	"godb/internal/cache"
 	"godb/log"
 	"godb/memtable"
 	"godb/sst"
@@ -20,12 +20,12 @@ type level struct {
 	logger *zap.SugaredLogger
 	//min, max []byte
 	ssts       []*sst.SST
-	blockCache *bigcache.BigCache
+	blockCache *cache.Cache[[]byte]
 	curId      int
 	path       string
 }
 
-func NewLevel(id int, path, table string, cache *bigcache.BigCache) Level {
+func NewLevel(id int, path, table string, cache *cache.Cache[[]byte]) Level {
 	lvl := level{
 		id:         id,
 		table:      table,

@@ -3,9 +3,9 @@ package sst
 import (
 	"os"
 
-	"github.com/allegro/bigcache"
 	"github.com/bits-and-blooms/bloom"
 
+	"godb/internal/cache"
 	"godb/log"
 )
 
@@ -42,11 +42,11 @@ type SST struct {
 	fref *os.File
 
 	meta       tableMeta
-	blockCache *bigcache.BigCache
+	blockCache *cache.Cache[[]byte]
 	sstId      int
 }
 
-func NewSST(table string, idx int, cache *bigcache.BigCache) *SST {
+func NewSST(table string, idx int, cache *cache.Cache[[]byte]) *SST {
 	var (
 		s   SST
 		err error

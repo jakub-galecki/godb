@@ -1,12 +1,11 @@
 package sst
 
 import (
-	"github.com/allegro/bigcache"
-
+	"godb/internal/cache"
 	"godb/memtable"
 )
 
-func WriteMemTable(mem *memtable.MemTable, path, table string, cache *bigcache.BigCache, sstId, level int) (*SST, error) {
+func WriteMemTable(mem *memtable.MemTable, path, table string, cache *cache.Cache[[]byte], sstId, level int) (*SST, error) {
 	it := mem.Iterator()
 
 	//logger.Debugf("MEM SIZE %d", mem.GetSize())

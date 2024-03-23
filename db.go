@@ -2,7 +2,6 @@ package main
 
 import (
 	"sync"
-	"time"
 
 	rbt "github.com/emirpasic/gods/trees/redblacktree"
 	"go.uber.org/zap"
@@ -50,7 +49,7 @@ func NewStorageEngine(path, table string) StorageEngine {
 	var (
 		err error
 
-		cache   = cache.New[[]byte](10 * time.Second)
+		cache   = cache.New[[]byte](cache.WithVerbose[[]byte](true))
 		storage = db{
 			mem:        memtable.NewStorageCore(),
 			logger:     log.InitLogger(),

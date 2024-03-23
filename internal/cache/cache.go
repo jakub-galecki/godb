@@ -2,13 +2,40 @@ package cache
 
 import (
 	"errors"
+	"os"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog"
 )
+
+var (
+	defaultExp = 5 * time.Second
+
+	trace = zerolog.New(os.Stdout).With().Timestamp().Logger()
+)
+
+func init() {
+
+}
 
 type entry[T any] struct {
 	v   T
 	ttl int64
+}
+
+type CacheOptionFunc[T any] func(*Cache[T])
+
+func WithVerbose[T any](v bool) CacheOptionFunc[T] {
+	return func(c *Cache[T]) {
+		c.verbose = v
+	}
+}
+
+func WithExpiration[T any](exp time.Duration) CacheOptionFunc[T] {
+	return func(c *Cache[T]) {
+		c.defExp = exp
+	}
 }
 
 type Cache[T any] struct {
@@ -19,13 +46,20 @@ type Cache[T any] struct {
 
 		data map[string]*entry[T]
 	}
+
+	verbose bool
 }
 
-func New[T any](exp time.Duration) *Cache[T] {
+func New[T any](opts ...CacheOptionFunc[T]) *Cache[T] {
 	data := make(map[string]*entry[T])
 	c := &Cache[T]{
-		defExp: exp,
+		defExp: defaultExp,
 	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
 	c.mu.data = data
 	go c.runCleaner()
 	return c
@@ -90,8 +124,15 @@ func (c *Cache[T]) clearExpired() {
 
 	t := time.Now().UnixMicro()
 
+	if c.verbose {
+		trace.Debug().
+			Msg("cleaning expired cache entries")
+	}
 	for k, e := range c.mu.data {
 		if e.ttl <= t {
+			trace.Debug().
+				Str("removing key", k)
+
 			e = nil
 			delete(c.mu.data, k)
 		}

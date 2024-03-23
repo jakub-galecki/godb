@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	rbt "github.com/emirpasic/gods/trees/redblacktree"
-	"go.uber.org/zap"
 
 	"godb/common"
 	"godb/internal/cache"
@@ -12,6 +11,10 @@ import (
 	"godb/log"
 	"godb/memtable"
 	"godb/wal"
+)
+
+var (
+	trace = log.NewLogger("db")
 )
 
 type StorageEngine interface {
@@ -24,9 +27,8 @@ type StorageEngine interface {
 }
 
 type db struct {
-	logger *zap.SugaredLogger
-	table  string
-	path   string
+	table string
+	path  string
 
 	mem  *memtable.MemTable   // mutable
 	sink []*memtable.MemTable // immutable
@@ -52,7 +54,6 @@ func NewStorageEngine(path, table string) StorageEngine {
 		cache   = cache.New[[]byte](cache.WithVerbose[[]byte](true))
 		storage = db{
 			mem:        memtable.NewStorageCore(),
-			logger:     log.InitLogger(),
 			table:      table,
 			blockCache: cache,
 			l0:         level.NewLevel(0, path, table, cache),

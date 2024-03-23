@@ -2,7 +2,6 @@ package sst
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,11 +16,11 @@ func TestEncodeDecode(t *testing.T) {
 
 	n, err := encode(e, w)
 	assert.NoError(t, err)
-	logger.Debugf("written bytes: [%d]", n)
+	trace.Debug().Int("n_bytes", n).Msg("written bytes")
 	decodedEntry := new(entry)
 	_, err = decode(w, decodedEntry)
 	assert.NoError(t, err)
-	fmt.Printf("decoded entry.key [%s] with value [%s]\n", decodedEntry.key, decodedEntry.value)
+	trace.Debug().Str("decoded_key", string(decodedEntry.key)).Str("decoded_value", string(decodedEntry.value))
 	assert.Equal(t, e.key, decodedEntry.key)
 	assert.Equal(t, e.value, decodedEntry.value)
 }

@@ -2,22 +2,16 @@ package cache
 
 import (
 	"errors"
-	"os"
+	"godb/log"
 	"sync"
 	"time"
-
-	"github.com/rs/zerolog"
 )
 
 var (
 	defaultExp = 5 * time.Second
 
-	trace = zerolog.New(os.Stdout).With().Timestamp().Logger()
+	trace = log.NewLogger("cache")
 )
-
-func init() {
-
-}
 
 type entry[T any] struct {
 	v   T

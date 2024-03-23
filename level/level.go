@@ -1,12 +1,14 @@
 package level
 
 import (
-	"go.uber.org/zap"
-
 	"godb/internal/cache"
 	"godb/log"
 	"godb/memtable"
 	"godb/sst"
+)
+
+var (
+	trace = log.NewLogger("level")
 )
 
 type Level interface {
@@ -15,9 +17,8 @@ type Level interface {
 }
 
 type level struct {
-	id     int
-	table  string
-	logger *zap.SugaredLogger
+	id    int
+	table string
 	//min, max []byte
 	ssts       []*sst.SST
 	blockCache *cache.Cache[[]byte]
@@ -30,7 +31,6 @@ func NewLevel(id int, path, table string, cache *cache.Cache[[]byte]) Level {
 		id:         id,
 		table:      table,
 		path:       path,
-		logger:     log.InitLogger(),
 		blockCache: cache,
 	}
 

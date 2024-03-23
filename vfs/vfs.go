@@ -2,11 +2,12 @@ package vfs
 
 import (
 	"fmt"
-	"os"
-
 	"godb/log"
+	"os"
+)
 
-	"go.uber.org/zap"
+var (
+	trace = log.NewLogger("vfs")
 )
 
 type Reader[T any] interface {
@@ -28,8 +29,7 @@ type VFS[T any] interface {
 type vfs[T any] struct {
 	path string
 
-	f      *os.File
-	logger *zap.SugaredLogger
+	f *os.File
 }
 
 func NewVFS[T any](dir, file string, flag int, perm os.FileMode) VFS[T] {
@@ -38,7 +38,6 @@ func NewVFS[T any](dir, file string, flag int, perm os.FileMode) VFS[T] {
 		err error
 	)
 
-	v.logger = log.InitLogger()
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err := os.Mkdir(dir, 0777) // todo
 		if err != nil {
@@ -48,7 +47,7 @@ func NewVFS[T any](dir, file string, flag int, perm os.FileMode) VFS[T] {
 	v.path = fmt.Sprintf("%s/%s", dir, file)
 	v.f, err = os.OpenFile(v.path, flag, perm)
 	if err != nil {
-		v.logger.Errorf("[NewVFS] error while opening file: %v", err)
+		trace.Error().Err(err).Msg("error while opening file")
 		panic(err)
 	}
 

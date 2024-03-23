@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	logger = log.InitLogger()
+	trace = log.NewLogger("sst")
 )
 
 const (
@@ -19,19 +19,6 @@ const (
 	IndexFName       = "index.bin"
 	DBFName          = "db.bin"
 )
-
-//type Reader interface {
-//	Contains([]byte) bool
-//	Get([]byte) ([]byte, error)
-//	//Close() error
-//}
-
-//type SST interface {
-//	Reader
-//
-//	GetTable() string
-//	GetTableMeta() tableMeta
-//}
 
 type SST struct {
 	table   string
@@ -48,16 +35,12 @@ type SST struct {
 
 func NewSST(table string, idx int, cache *cache.Cache[[]byte]) *SST {
 	var (
-		s   SST
-		err error
+		s SST
 	)
 
 	s.table = table
 	s.blockCache = cache
 	s.sstId = idx
-	if err != nil {
-		panic(err)
-	}
 
 	return &s
 }

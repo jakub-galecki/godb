@@ -28,11 +28,11 @@ func (l *db) drainSink() {
 		}
 		l.mutex.Unlock()
 
-		l.logger.Debug("got memtable to flush")
+		trace.Debug().Msg("got memtable to flush")
 
 		if mem != nil {
 			if err := l.flushMemTable(mem); err != nil {
-				l.logger.Error(err)
+				trace.Error().Err(err).Msg("error while flushin memtable")
 			}
 
 			l.mutex.Lock()
@@ -56,7 +56,7 @@ func (l *db) flushMemTable(mem *memtable.MemTable) error {
 
 func (l *db) maybeFlush(force bool) {
 	if l.exceededSize() || force {
-		l.logger.Debug("exceeded size ", l.mem.GetSize())
+		trace.Debug().Int("size", l.mem.GetSize()).Msg("memtable size exceeded")
 		l.moveToSink()
 	}
 }

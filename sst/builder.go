@@ -157,6 +157,6 @@ func (bdr *builder) flushBlock(b *block) {
 	bdr.offset += uint64(n)
 	bdr.size += uint64(n)
 	if err != nil {
-		logger.Error("Error while writing block to disk", err)
+		trace.Error().Err(err).Msg("error while writing block to disk")
 	}
 }

@@ -7,13 +7,14 @@ import (
 )
 
 func (l *db) exceededSize() bool {
-	return l.mem.GetSize() == common.MAX_MEMTABLE_THRESHOLD
+	trace.Debug().Int("memtable_size", l.mem.GetSize())
+	size := l.mem.GetSize()
+	return size == common.MAX_MEMTABLE_THRESHOLD
 }
 
 func (l *db) moveToSink() {
 	l.mutex.Lock()
 	l.sink = append(l.sink, l.mem)
-	// core := rbt.NewRedBlackTree()
 	l.mem = memtable.NewStorageCore()
 	l.mutex.Unlock()
 }
@@ -28,9 +29,9 @@ func (l *db) drainSink() {
 		}
 		l.mutex.Unlock()
 
-		trace.Debug().Msg("got memtable to flush")
-
 		if mem != nil {
+			trace.Debug().Msg("got memtable to flush")
+
 			if err := l.flushMemTable(mem); err != nil {
 				trace.Error().Err(err).Msg("error while flushin memtable")
 			}
@@ -55,6 +56,7 @@ func (l *db) flushMemTable(mem *memtable.MemTable) error {
 }
 
 func (l *db) maybeFlush(force bool) {
+	trace.Debug().Int("maybe_flush", l.mem.GetSize())
 	if l.exceededSize() || force {
 		trace.Debug().Int("size", l.mem.GetSize()).Msg("memtable size exceeded")
 		l.moveToSink()

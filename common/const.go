@@ -11,7 +11,7 @@ var (
 )
 
 const (
-	MAX_MEMTABLE_THRESHOLD = 8 * 1024
+	MAX_MEMTABLE_THRESHOLD = 1 << 10
 
 	MAX_SINK_SIZE = 8
 )

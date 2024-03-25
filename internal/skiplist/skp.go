@@ -79,6 +79,10 @@ func (skl *SkipList) Set(key, value []byte) {
 	skl.bytes += len(key) + len(value)
 }
 
+func (skl *SkipList) GetSize() int {
+	return skl.bytes
+}
+
 func (skl *SkipList) getPreviousNodes(key []byte) []*node {
 	previousNodes := make([]*node, skl.maxLevel)
 
@@ -104,4 +108,31 @@ func randomLevel(maxLevel int) int {
 	}
 
 	return lvl
+}
+
+func (skl *SkipList) NewIterator() *Iterator {
+	return &Iterator{
+		cursor: skl.head,
+	}
+}
+
+type Iterator struct {
+	cursor *node
+}
+
+func (it *Iterator) Next() bool {
+	if len(it.cursor.next) == 0 || it.cursor.next[0] == nil {
+		return false
+	}
+
+	it.cursor = it.cursor.next[0]
+	return true
+}
+
+func (it *Iterator) Key() []byte {
+	return it.cursor.key
+}
+
+func (it *Iterator) Value() []byte {
+	return it.cursor.value
 }

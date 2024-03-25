@@ -20,7 +20,6 @@ func main() {
 	}
 	for i := 0; i < 1000000; i++ {
 		_, _ = lsmt.Get([]byte(fmt.Sprintf("foo.%d", i)))
-
 	}
 	lsmt.Delete([]byte("foo"))
 

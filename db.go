@@ -3,10 +3,9 @@ package main
 import (
 	"sync"
 
-	rbt "github.com/emirpasic/gods/trees/redblacktree"
-
 	"godb/common"
 	"godb/internal/cache"
+	"godb/internal/skiplist"
 	"godb/level"
 	"godb/log"
 	"godb/memtable"
@@ -47,7 +46,6 @@ type db struct {
 }
 
 func NewStorageEngine(path, table string) StorageEngine {
-	// core := rbt.NewRedBlackTree()
 	var (
 		err error
 
@@ -76,6 +74,6 @@ func (l *db) GetSize() int {
 	return l.mem.GetSize()
 }
 
-func (l *db) Iterator() rbt.Iterator {
+func (l *db) Iterator() *skiplist.Iterator {
 	return l.mem.Iterator()
 }

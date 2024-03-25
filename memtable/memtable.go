@@ -1,11 +1,8 @@
 package memtable
 
 import (
-	"bytes"
-
-	rbt "github.com/emirpasic/gods/trees/redblacktree"
-
 	"godb/common"
+	"godb/internal/skiplist"
 )
 
 //type MemTable interface {
@@ -16,7 +13,7 @@ import (
 //var _ MemTable = (*memtable)(nil)
 
 type MemTable struct {
-	storage *rbt.Tree
+	storage *skiplist.SkipList
 	size    int
 }
 
@@ -24,32 +21,24 @@ type MemTable struct {
 func NewStorageCore() *MemTable {
 	var stc MemTable
 	stc.size = 0
-	stc.storage = rbt.NewWith(func(a, b interface{}) int {
-		ab := a.([]byte)
-		bb := b.([]byte)
-		return bytes.Compare(ab, bb)
-	})
+	stc.storage = skiplist.New(16)
 	return &stc
 }
 
 func (m *MemTable) Set(key, value []byte) {
-	m.storage.Put(key, value)
-}
-
-func (m *MemTable) Put(key, value interface{}) {
-	m.storage.Put(key, value)
+	m.storage.Set(key, value)
 }
 
 func (m *MemTable) Get(key []byte) ([]byte, bool) {
 	val, found := m.storage.Get(key)
 	if val != nil {
-		return val.([]byte), found
+		return val, found
 	}
 	return nil, false
 }
 
 func (m *MemTable) GetSize() int {
-	return m.storage.Size()
+	return m.storage.GetSize()
 }
 
 //func (m *MemTable) GetSizeBytes() int {
@@ -57,9 +46,9 @@ func (m *MemTable) GetSize() int {
 //}
 
 func (m *MemTable) Delete(key []byte) {
-	m.storage.Put(key, common.TOMBSTONE)
+	m.storage.Set(key, common.TOMBSTONE)
 }
 
-func (m *MemTable) Iterator() rbt.Iterator {
-	return m.storage.Iterator()
+func (m *MemTable) Iterator() *skiplist.Iterator {
+	return m.storage.NewIterator()
 }

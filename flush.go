@@ -23,6 +23,11 @@ func (l *db) drainSink() {
 	for {
 		var mem *memtable.MemTable
 
+		// todo: create atomic sink size ??
+		// flush all memtables from the sink at once ??
+		// remember to remove them only after they are flushed so that data
+		// can be accepted
+
 		l.mutex.Lock()
 		if len(l.sink) > 0 {
 			mem = l.sink[0]

@@ -21,7 +21,7 @@ func (l *db) applyBatch(b *Batch) error {
 		return fmt.Errorf("batch already commited")
 	}
 
-	if err := l.writeToWal(b); err != nil {
+	if err := l.applyToWal(b); err != nil {
 		return err
 	}
 
@@ -46,7 +46,7 @@ func applyToMemtable(mem *memtable.MemTable, batch *Batch) error {
 	return nil
 }
 
-func (l *db) writeToWal(b *Batch) error {
+func (l *db) applyToWal(b *Batch) error {
 	for _, a := range b.actions {
 		b.wg.Add(1)
 		l.wl.Write(a.byte(), b.wg)

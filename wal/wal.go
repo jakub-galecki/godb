@@ -2,13 +2,13 @@ package wal
 
 import (
 	"bufio"
-	"crypto/md5"
 	"fmt"
-	"godb/common"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"godb/common"
 )
 
 /*
@@ -103,9 +103,9 @@ func NewWal(opts *WalOpts) (*Wal, error) {
 
 func (w *Wal) internalEncode(b []byte) []byte {
 	lsn := w.mu.lsn
-	data := []byte(fmt.Sprintf("%v %d %s ", time.Now().Unix(), lsn, b))
-	sum := md5.Sum([]byte(data))
-	return append(data, sum[:]...)
+	data := []byte(fmt.Sprintf("%v %d %s\n", time.Now().Unix(), lsn, b))
+	// sum := md5.Sum([]byte(data))
+	return data
 }
 
 func (w *Wal) runSyncWorker() {

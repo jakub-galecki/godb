@@ -41,10 +41,6 @@ func (m *MemTable) GetSize() int {
 	return m.storage.GetSize()
 }
 
-//func (m *MemTable) GetSizeBytes() int {
-//	return m.storage.
-//}
-
 func (m *MemTable) Delete(key []byte) {
 	m.storage.Set(key, common.TOMBSTONE)
 }

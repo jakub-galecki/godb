@@ -18,7 +18,7 @@ type MemTable struct {
 }
 
 // storageCore common.StorageCore
-func NewStorageCore() *MemTable {
+func New() *MemTable {
 	var stc MemTable
 	stc.size = 0
 	stc.storage = skiplist.New(16)

@@ -17,6 +17,8 @@ func (l *db) Delete(key []byte) error {
 }
 
 func (l *db) applyBatch(b *Batch) error {
+	defer b.release()
+
 	if b.committed.Load() {
 		return fmt.Errorf("batch already commited")
 	}

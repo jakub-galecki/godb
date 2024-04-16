@@ -10,7 +10,7 @@ import (
 )
 
 func TestBuilder(t *testing.T) {
-	storage := memtable.NewStorageCore()
+	storage := memtable.New()
 
 	for i := 0; i < 100000; i++ {
 		k := fmt.Sprintf("k%d", i)

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/sha256"
+	"errors"
+	"os"
 	"sync"
 
 	"godb/common"
@@ -26,8 +29,7 @@ type StorageEngine interface {
 }
 
 type db struct {
-	table string
-	path  string
+	id string
 
 	mem  *memtable.MemTable   // mutable
 	sink []*memtable.MemTable // immutable
@@ -43,31 +45,82 @@ type db struct {
 	blockCache *cache.Cache[[]byte]
 
 	mutex sync.Mutex
+
+	opts dbOpts
 }
 
-func NewStorageEngine(path, table string) StorageEngine {
-	var (
-		err error
+type dbOpts struct {
+	table string
+	path  string
+	// enableWal bool
+}
 
-		cache   = cache.New[[]byte](cache.WithVerbose[[]byte](true))
-		storage = db{
-			mem:        memtable.NewStorageCore(),
-			table:      table,
-			blockCache: cache,
-			l0:         level.NewLevel(0, path, table, cache),
-			flushChan:  make(chan *memtable.MemTable),
-		}
-	)
+type Opts struct {
+	DbPath string
+}
 
-	common.EnsureDir(path)
-	storage.wl, err = wal.NewWal(nil)
+type DbOpt func(*dbOpts)
+
+func WithDbPath(path string) DbOpt {
+	return func(o *dbOpts) {
+		o.path = path
+	}
+}
+
+func Open(table string, opts ...DbOpt) *db {
+	dbOpts := dbOpts{
+		table: table,
+		path:  "/tmp/",
+	}
+
+	for _, ofn := range opts {
+		ofn(&dbOpts)
+	}
+
+	wl, err := wal.NewWal(wal.GetDefaultOpts(dbOpts.path))
 	if err != nil {
 		panic(err)
 	}
 
-	go storage.drainSink()
+	d := db{
+		id:         string(sha256.New().Sum([]byte(table))),
+		mem:        memtable.New(),
+		sink:       make([]*memtable.MemTable, 0),
+		wl:         wl,
+		blockCache: cache.New[[]byte](cache.WithVerbose[[]byte](true)),
+		opts:       dbOpts,
+	}
 
-	return &storage
+	switch _, err := os.Stat(dbOpts.path); {
+	case err == nil:
+		err = d.tryRecover()
+		if err != nil {
+			panic(err)
+		}
+	case errors.Is(err, os.ErrNotExist):
+		err = d.new()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	go d.drainSink()
+
+	return &d
+}
+
+func (l *db) tryRecover() error {
+	return nil
+}
+
+func (l *db) new() error {
+	if err := common.EnsureDir(l.opts.path); err != nil {
+		return err
+	}
+
+	l.levels = make([]level.Level, 0)
+
+	return nil
 }
 
 func (l *db) GetSize() int {

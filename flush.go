@@ -15,7 +15,7 @@ func (l *db) exceededSize() bool {
 func (l *db) moveToSink() {
 	l.mutex.Lock()
 	l.sink = append(l.sink, l.mem)
-	l.mem = memtable.NewStorageCore()
+	l.mem = memtable.New()
 	l.mutex.Unlock()
 }
 
@@ -41,6 +41,8 @@ func (l *db) drainSink() {
 				trace.Error().Err(err).Msg("error while flushin memtable")
 			}
 
+			mem = nil
+
 			l.mutex.Lock()
 			l.sink = l.sink[1:]
 			l.mutex.Unlock()
@@ -50,7 +52,7 @@ func (l *db) drainSink() {
 
 func (l *db) flushMemTable(mem *memtable.MemTable) error {
 	if len(l.levels) == 0 {
-		newLevel := level.NewLevel(0, l.path, l.table, l.blockCache)
+		newLevel := level.NewLevel(0, l.opts.path, l.opts.table, l.blockCache)
 		l.levels = append(l.levels, newLevel)
 	}
 

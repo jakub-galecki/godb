@@ -2,8 +2,8 @@ package main
 
 import (
 	"godb/common"
-	"godb/level"
 	"godb/memtable"
+	"godb/wal"
 )
 
 func (l *db) exceededSize() bool {
@@ -51,14 +51,28 @@ func (l *db) drainSink() {
 }
 
 func (l *db) flushMemTable(mem *memtable.MemTable) error {
-	if len(l.levels) == 0 {
-		newLevel := level.NewLevel(0, l.opts.path, l.opts.table, l.blockCache)
-		l.levels = append(l.levels, newLevel)
-	}
-
-	if err := l.l0.AddMemtable(mem); err != nil {
+	if err := l.l0.AddMemtable(l, mem); err != nil {
 		return err
 	}
+
+	if err := l.rotateWal(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (l *db) rotateWal() error {
+	err := l.wl.Delete()
+	if err != nil {
+		return err
+	}
+	// todo: remove wal associated with memtable
+	l.wl, err = wal.NewWal(wal.GetDefaultOpts(l.opts.path))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

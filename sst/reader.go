@@ -6,24 +6,20 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 
-	"github.com/bits-and-blooms/bloom"
+	"github.com/bits-and-blooms/bloom/v3"
 )
 
-type ReaderOpts struct {
-	dirPath string
-}
-
-func Open(table string) *SST {
-	dbname := fmt.Sprintf("%s.db", table)
-	f, err := os.OpenFile(dbname, os.O_RDONLY, F_PERMISSION)
+func Open(path string) (*SST, error) {
+	f, err := os.OpenFile(path, os.O_RDONLY, F_PERMISSION)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	st, err := os.Stat(dbname)
+	st, err := os.Stat(path)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	fsize := st.Size()
@@ -31,14 +27,14 @@ func Open(table string) *SST {
 	buf := make([]byte, 48)
 	_, err = f.ReadAt(buf, fsize-48)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	r := bytes.NewReader(buf)
 	tm := tableMeta{}
 
 	if err := tm.readFrom(r); err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	trace.Debug().
@@ -53,19 +49,19 @@ func Open(table string) *SST {
 	bfBytes := make([]byte, tm.bfSize)
 	_, err = f.ReadAt(bfBytes, int64(tm.bfOffset))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	bf := &bloom.BloomFilter{}
 	_, err = bf.ReadFrom(bytes.NewReader(bfBytes))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	idxBlock := make([]byte, tm.indexSize)
 	_, err = f.ReadAt(idxBlock, int64(tm.indexOffset))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	return &SST{
@@ -73,7 +69,7 @@ func Open(table string) *SST {
 		bf:   bf,
 		idx:  indexFromBuf(bytes.NewBuffer(idxBlock)),
 		fref: f,
-	}
+	}, nil
 }
 
 func (s *SST) Contains(k []byte) bool {
@@ -88,12 +84,12 @@ func (s *SST) Get(k []byte) ([]byte, error) {
 	trace.Debug().Str("key", string(k)).
 		Msg("Reading from the sst file")
 
-	genCacheKey := func(idx int, off uint64) string {
-		return fmt.Sprintf("%d.%d", idx, off)
+	genCacheKey := func(idx string, off uint64) string {
+		return idx + strconv.FormatUint(off, 10)
 	}
 
 	getFromBlock := func(raw, key []byte) ([]byte, error) {
-		return (&block{buf: bytes.NewBuffer(raw)}).get(k)
+		return (&block{buf: bytes.NewBuffer(raw)}).get(key)
 	}
 
 	// todo: reformat

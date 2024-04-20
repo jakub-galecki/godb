@@ -2,14 +2,12 @@ package sst
 
 import (
 	"encoding/binary"
-	"fmt"
 	"sync"
 	"time"
 
-	"godb/common"
 	"godb/vfs"
 
-	"github.com/bits-and-blooms/bloom"
+	"github.com/bits-and-blooms/bloom/v3"
 )
 
 type Builder interface {
@@ -18,37 +16,28 @@ type Builder interface {
 }
 
 type builder struct {
-	table        string
 	currentBlock *block
 	offset       uint64
 	size         uint64
-	fname        string
 	dir          string
 	file         vfs.VFS[block]
 	bf           *bloom.BloomFilter
 	index        *indexBuilder // one block should be enough for now but should be changes
 	readyBlocks  chan *block
 	done         sync.WaitGroup
-	sstId        int
-	level        int
+	sstId        string
 }
 
-func NewBuilder(path, table string, n, level, id int) Builder {
-	common.EnsureDir(fmt.Sprintf("%s/%s", path, table))
-	dir := fmt.Sprintf("%s/%s/l%d", path, table, level)
-	file := fmt.Sprintf("%s.%d.db", table, id)
+func NewBuilder(dir string, n int, id string) Builder {
 	bdr := &builder{
-		table:        table,
 		offset:       0,
 		readyBlocks:  make(chan *block),
-		fname:        file,
 		dir:          dir,
-		file:         vfs.NewVFS[block](dir, file, F_FLAGS, F_PERMISSION),
+		file:         vfs.NewVFS[block](dir, id+".db", F_FLAGS, F_PERMISSION),
 		index:        newBuilderIndex(),
 		bf:           bloom.NewWithEstimates(uint(n), 0.01),
 		currentBlock: newBlock(),
 		sstId:        id,
-		level:        level,
 	}
 	bdr.done.Add(1)
 	go bdr.readyBlockWorker()
@@ -116,11 +105,10 @@ func (bdr *builder) Finish() *SST {
 	}
 
 	return &SST{
-		table: bdr.table,
 		meta:  meta,
 		bf:    bdr.bf,
 		idx:   indexFromBuf(bdr.index.buf),
-		fref:  vfs.NewVFS[block](bdr.dir, bdr.fname, F_READ, F_PERMISSION).GetFileReference(),
+		fref:  bdr.file.GetFileRef(),
 		sstId: bdr.sstId,
 	}
 }

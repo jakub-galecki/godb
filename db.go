@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"errors"
+	"godb/sst"
 	"os"
 	"path"
 	"sync"
@@ -10,7 +11,6 @@ import (
 	"godb/common"
 	"godb/internal/cache"
 	"godb/internal/skiplist"
-	"godb/level"
 	"godb/log"
 	"godb/memtable"
 	"godb/wal"
@@ -30,24 +30,17 @@ type StorageEngine interface {
 }
 
 type db struct {
-	id string
-
-	mem  *memtable.MemTable   // mutable
-	sink []*memtable.MemTable // immutable
-
-	flushChan chan *memtable.MemTable
-
-	l0 level.Level
-	// l0Flushed sync.WaitGroup
-	levels []level.Level
-
-	// todo: manifest
+	id         string
+	mem        *memtable.MemTable   // mutable
+	sink       []*memtable.MemTable // immutable
+	flushChan  chan *memtable.MemTable
+	l0         *level
+	levels     []*level
 	wl         *wal.Wal
 	blockCache *cache.Cache[[]byte]
-
-	mutex sync.Mutex
-
-	opts dbOpts
+	mutex      sync.Mutex
+	opts       dbOpts
+	manifest   *manifest
 }
 
 type dbOpts struct {
@@ -78,6 +71,8 @@ func Open(table string, opts ...DbOpt) *db {
 		ofn(&dbOpts)
 	}
 
+	dbOpts.path = path.Join(dbOpts.path, table)
+
 	wl, err := wal.NewWal(wal.GetDefaultOpts(dbOpts.path))
 	if err != nil {
 		panic(err)
@@ -94,7 +89,7 @@ func Open(table string, opts ...DbOpt) *db {
 
 	switch _, err := os.Stat(dbOpts.path); {
 	case err == nil:
-		err = d.tryRecover()
+		err = d.recover()
 		if err != nil {
 			panic(err)
 		}
@@ -110,27 +105,72 @@ func Open(table string, opts ...DbOpt) *db {
 	return &d
 }
 
-func (l *db) tryRecover() error {
+func (l *db) recover() (err error) {
+	m, err := readManifest(l.opts.path)
+	if err != nil {
+		return err
+	}
+	if m.Id != l.id {
+		return errors.New("id hash did not match")
+	}
+	l.manifest = m
+	err = l.loadLevels()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (l *db) new() error {
-	if err := common.EnsureDir(l.opts.path); err != nil {
-		return err
+func (l *db) loadLevels() (err error) {
+	// load l0 levels
+	if l.manifest == nil {
+		return errors.New("manifest not loaded")
 	}
-
-	sstPath := path.Join(l.opts.path, common.SST_DIR)
-	if err := common.EnsureDir(sstPath); err != nil {
-		return err
+	if l.l0 == nil {
+		l.l0 = newLevel(0, l.opts.path, l.blockCache)
 	}
-
-	manifest, err := common.CreateFile(path.Join(l.opts.path, common.MANIFEST))
+	err = l.l0.loadSSTs(l.manifest.L0)
 	if err != nil {
 		return err
 	}
 
-	l.levels = make([]level.Level, 0)
+	// load the rest of levels
+	l.levels = make([]*level, l.manifest.NLevels-1) // -1 because L0 is stored in separated field
+	for lvl, ssts := range l.manifest.Levels {
+		if l.levels[lvl] == nil {
+			l.levels[lvl] = newLevel(lvl, l.opts.path, l.blockCache)
+		}
+		err = l.levels[lvl].loadSSTs(ssts)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
+func (l *db) Close() error {
+	err := l.manifest.fsync()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (l *db) new() (err error) {
+	if err := common.EnsureDir(l.opts.path); err != nil {
+		return err
+	}
+	sstPath := path.Join(l.opts.path, common.SST_DIR)
+	if err := common.EnsureDir(sstPath); err != nil {
+		return err
+	}
+	l.manifest, err = newManifest(l.id, l.opts.path, l.opts.table, sst.BLOCK_SIZE, 7)
+	if err != nil {
+		return err
+	}
+	// for now use global cache, maybe change so l0 has its own block cache
+	l.l0 = newLevel(0, sstPath, l.blockCache)
+	l.levels = make([]*level, 0)
 	return nil
 }
 

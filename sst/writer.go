@@ -5,12 +5,12 @@ import (
 	"godb/memtable"
 )
 
-func WriteMemTable(mem *memtable.MemTable, path, table string, cache *cache.Cache[[]byte], sstId, level int) (*SST, error) {
+func WriteMemTable(mem *memtable.MemTable, path string, cache *cache.Cache[[]byte], sstId string) (*SST, error) {
 	it := mem.Iterator()
 
 	trace.Debug().Int("MEM SIZE", mem.GetSize()).Msg("Flushing memtable to SST")
 
-	sstBuilder := NewBuilder(path, table, mem.GetSize(), level, sstId)
+	sstBuilder := NewBuilder(path, mem.GetSize(), sstId)
 	for it.Next() {
 		k, v := it.Key(), it.Value()
 		sstBuilder = sstBuilder.Add(k, v)

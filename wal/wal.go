@@ -2,9 +2,10 @@ package wal
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
+	"path"
 	"sync"
 	"time"
 
@@ -39,7 +40,7 @@ func GetDefaultOpts(dir string) *WalOpts {
 }
 
 type Wal struct {
-	dirPath string
+	path string
 
 	mu struct {
 		sync.Mutex
@@ -63,37 +64,27 @@ type Wal struct {
 
 func NewWal(opts *WalOpts) (*Wal, error) {
 	var (
-		makeFile = func(path, fname string) (*os.File, error) {
-			fpath := filepath.Join(path, fname)
-			return os.OpenFile(fpath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		}
+		err error
 	)
 
 	if opts == nil {
-		opts = GetDefaultOpts("./")
+		return nil, errors.New("empty options")
 	}
 
-	path, err := filepath.Abs(opts.Dir + "/wal/")
-	if err != nil {
-		return nil, err
-	}
-
+	path := path.Join(opts.Dir, common.WAL)
 	wl := &Wal{
-		dirPath:      path,
+		path:         path,
 		syncInterval: opts.SyncInterval,
 		syncTicker:   time.NewTicker(opts.SyncInterval),
 		fsync:        opts.Sync,
 		encd:         opts.Encoder,
 	}
 
-	if err := common.EnsureDir(path); err != nil {
-		return nil, err
-	}
-
-	wl.mu.file, err = makeFile(path, "0.0.log")
+	wl.mu.file, err = os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
 	}
+
 	wl.buf = bufio.NewWriter(wl.mu.file)
 
 	go wl.runSyncWorker()
@@ -148,6 +139,21 @@ func (w *Wal) Close() error {
 	}
 
 	if err := w.mu.file.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (w *Wal) Delete() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if err := w.mu.file.Close(); err != nil {
+		return err
+	}
+
+	if err := os.Remove(w.path); err != nil {
 		return err
 	}
 

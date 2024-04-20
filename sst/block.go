@@ -32,7 +32,7 @@ func (b *block) get(key []byte) ([]byte, error) {
 	e := entry{}
 	read := 0
 	for n, err := decode(b.buf, &e); err == nil; n, err = decode(b.buf, &e) {
-		if bytes.Compare(e.key, key) == 0 {
+		if bytes.Equal(e.key, key) {
 			return e.value, nil
 		}
 		read += n

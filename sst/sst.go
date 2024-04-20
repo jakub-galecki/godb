@@ -3,7 +3,7 @@ package sst
 import (
 	"os"
 
-	"github.com/bits-and-blooms/bloom"
+	"github.com/bits-and-blooms/bloom/v3"
 
 	"godb/internal/cache"
 	"godb/log"
@@ -13,16 +13,8 @@ var (
 	trace = log.NewLogger("sst")
 )
 
-const (
-	BloomFName       = "bloom.bin"
-	SparseIndexFName = "sindex.bin"
-	IndexFName       = "index.bin"
-	DBFName          = "db.bin"
-)
-
 type SST struct {
-	table   string
-	tableId int
+	table string
 
 	bf   *bloom.BloomFilter
 	idx  *index
@@ -30,19 +22,7 @@ type SST struct {
 
 	meta       tableMeta
 	blockCache *cache.Cache[[]byte]
-	sstId      int
-}
-
-func NewSST(table string, idx int, cache *cache.Cache[[]byte]) *SST {
-	var (
-		s SST
-	)
-
-	s.table = table
-	s.blockCache = cache
-	s.sstId = idx
-
-	return &s
+	sstId      string
 }
 
 func (s *SST) GetTableMeta() tableMeta {
@@ -51,4 +31,8 @@ func (s *SST) GetTableMeta() tableMeta {
 
 func (s *SST) GetTable() string {
 	return s.table
+}
+
+func (s *SST) GetId() string {
+	return s.sstId
 }

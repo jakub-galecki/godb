@@ -13,6 +13,7 @@ import (
 //var _ MemTable = (*memtable)(nil)
 
 type MemTable struct {
+	id      string
 	storage *skiplist.SkipList
 	size    int
 }

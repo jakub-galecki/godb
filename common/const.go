@@ -16,5 +16,6 @@ const (
 	MAX_SINK_SIZE = 8
 
 	SST_DIR  = "sst"
+	WAL      = "wal"
 	MANIFEST = "MANIFEST"
 )

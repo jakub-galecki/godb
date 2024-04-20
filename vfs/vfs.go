@@ -1,9 +1,9 @@
 package vfs
 
 import (
-	"fmt"
 	"godb/log"
 	"os"
+	"path"
 )
 
 var (
@@ -23,7 +23,7 @@ type VFS[T any] interface {
 	Reader[T]
 	Writer[T]
 
-	GetFileReference() *os.File
+	GetFileRef() *os.File
 }
 
 type vfs[T any] struct {
@@ -44,7 +44,7 @@ func NewVFS[T any](dir, file string, flag int, perm os.FileMode) VFS[T] {
 			panic(err)
 		}
 	}
-	v.path = fmt.Sprintf("%s/%s", dir, file)
+	v.path = path.Join(dir, file)
 	v.f, err = os.OpenFile(v.path, flag, perm)
 	if err != nil {
 		trace.Error().Err(err).Msg("error while opening file")
@@ -54,6 +54,6 @@ func NewVFS[T any](dir, file string, flag int, perm os.FileMode) VFS[T] {
 	return v
 }
 
-func (v vfs[T]) GetFileReference() *os.File {
+func (v vfs[T]) GetFileRef() *os.File {
 	return v.f
 }

@@ -20,5 +20,13 @@ func EnsureDir(path string) error {
 		return err
 	}
 	return nil
+}
 
+func CreateFile(path string) (*os.File, error) {
+	f, err := os.Create(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return f, nil
 }

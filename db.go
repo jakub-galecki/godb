@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"os"
+	"path"
 	"sync"
 
 	"godb/common"
@@ -115,6 +116,16 @@ func (l *db) tryRecover() error {
 
 func (l *db) new() error {
 	if err := common.EnsureDir(l.opts.path); err != nil {
+		return err
+	}
+
+	sstPath := path.Join(l.opts.path, common.SST_DIR)
+	if err := common.EnsureDir(sstPath); err != nil {
+		return err
+	}
+
+	manifest, err := common.CreateFile(path.Join(l.opts.path, common.MANIFEST))
+	if err != nil {
 		return err
 	}
 

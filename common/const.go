@@ -14,4 +14,7 @@ const (
 	MAX_MEMTABLE_THRESHOLD = 1 << 10
 
 	MAX_SINK_SIZE = 8
+
+	SST_DIR  = "sst"
+	MANIFEST = "MANIFEST"
 )

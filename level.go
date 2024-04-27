@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	"godb/common"
 	"godb/internal/cache"
 	"godb/memtable"
 	"godb/sst"
@@ -53,12 +53,8 @@ func (l *level) AddMemtable(d *db, mem *memtable.MemTable) error {
 }
 
 func (l *level) getNextSSTId() string {
-	var buf bytes.Buffer
 	// todo: hash
-	buf.WriteString(strconv.Itoa(l.id))
-	buf.WriteRune('.')
-	buf.WriteString(strconv.Itoa(l.curId))
-	return buf.String()
+	return common.Concat(strconv.Itoa(l.id), ".", strconv.Itoa(l.curId))
 }
 
 func (l *level) loadSSTs(ssts []string) error {

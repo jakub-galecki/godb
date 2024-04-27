@@ -27,6 +27,7 @@ func newBatch(acs ...*action) *Batch {
 	b := batchPool.Get().(*Batch)
 	b.wg = &sync.WaitGroup{}
 	b.actions = acs
+	b.committed = atomic.Bool{}
 	return b
 }
 

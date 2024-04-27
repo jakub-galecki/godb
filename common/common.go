@@ -1,6 +1,7 @@
 package common
 
 import (
+	"bytes"
 	"errors"
 	"os"
 )
@@ -29,4 +30,12 @@ func CreateFile(path string) (*os.File, error) {
 	}
 
 	return f, nil
+}
+
+func Concat(xs ...string) string {
+	var buf bytes.Buffer
+	for _, x := range xs {
+		buf.WriteString(x)
+	}
+	return buf.String()
 }

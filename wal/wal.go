@@ -19,8 +19,8 @@ NOTE
 */
 
 type WalOpts struct {
-	Dir string
-
+	Dir          string
+	FileName     string
 	SyncInterval time.Duration
 	Encoder      func([]byte) []byte
 	Sync         bool
@@ -29,9 +29,10 @@ type WalOpts struct {
 	// todo: create Segment
 }
 
-func GetDefaultOpts(dir string) *WalOpts {
+func GetDefaultOpts(dir string, fname string) *WalOpts {
 	return &WalOpts{
 		Dir:          dir,
+		FileName:     fname,
 		SyncInterval: time.Second,
 		Encoder:      func(b []byte) []byte { return b },
 		Sync:         true,
@@ -40,7 +41,8 @@ func GetDefaultOpts(dir string) *WalOpts {
 }
 
 type Wal struct {
-	path string
+	path  string
+	fname string
 
 	mu struct {
 		sync.Mutex
@@ -71,16 +73,25 @@ func NewWal(opts *WalOpts) (*Wal, error) {
 		return nil, errors.New("empty options")
 	}
 
-	path := path.Join(opts.Dir, common.WAL)
+	dir := path.Join(opts.Dir, common.WAL)
+
+	err = common.EnsureDir(dir)
+	if err != nil {
+		return nil, err
+	}
 	wl := &Wal{
-		path:         path,
+		path:         dir,
+		fname:        opts.FileName,
 		syncInterval: opts.SyncInterval,
 		syncTicker:   time.NewTicker(opts.SyncInterval),
 		fsync:        opts.Sync,
 		encd:         opts.Encoder,
 	}
-
-	wl.mu.file, err = os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	wl.mu.file, err = os.OpenFile(
+		path.Join(dir, common.Concat(wl.fname)),
+		os.O_RDWR|os.O_CREATE|os.O_APPEND,
+		0666,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +101,10 @@ func NewWal(opts *WalOpts) (*Wal, error) {
 	go wl.runSyncWorker()
 
 	return wl, nil
+}
+
+func Open() (*Wal, error) {
+	return nil, nil
 }
 
 func (w *Wal) internalEncode(b []byte) []byte {

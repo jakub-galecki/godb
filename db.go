@@ -31,8 +31,8 @@ type StorageEngine interface {
 
 type db struct {
 	id         string
-	mem        *memtable.MemTable   // mutable
-	sink       []*memtable.MemTable // immutable
+	mem        *memtable.MemTable // mutable
+	sink       []*flushable       // immutable
 	flushChan  chan *memtable.MemTable
 	l0         *level
 	levels     []*level
@@ -73,16 +73,12 @@ func Open(table string, opts ...DbOpt) *db {
 
 	dbOpts.path = path.Join(dbOpts.path, table)
 
-	wl, err := wal.NewWal(wal.GetDefaultOpts(dbOpts.path))
-	if err != nil {
-		panic(err)
-	}
+	// if err := common.EnsureDir(dbOpts.path)
 
 	d := db{
 		id:         string(sha256.New().Sum([]byte(table))),
 		mem:        memtable.New(),
-		sink:       make([]*memtable.MemTable, 0),
-		wl:         wl,
+		sink:       make([]*flushable, 0),
 		blockCache: cache.New[[]byte](cache.WithVerbose[[]byte](true)),
 		opts:       dbOpts,
 	}
@@ -118,6 +114,11 @@ func (l *db) recover() (err error) {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (l *db) recoverWal() (err error) {
 	return nil
 }
 
@@ -160,11 +161,22 @@ func (l *db) new() (err error) {
 	if err := common.EnsureDir(l.opts.path); err != nil {
 		return err
 	}
+	wl, err := wal.NewWal(wal.GetDefaultOpts(l.opts.path, l.mem.GetId().String()))
+	if err != nil {
+		panic(err)
+	}
+
+	l.wl = wl
+
 	sstPath := path.Join(l.opts.path, common.SST_DIR)
 	if err := common.EnsureDir(sstPath); err != nil {
 		return err
 	}
 	l.manifest, err = newManifest(l.id, l.opts.path, l.opts.table, sst.BLOCK_SIZE, 7)
+	if err != nil {
+		return err
+	}
+	err = l.manifest.fsync()
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,8 @@ package memtable
 import (
 	"godb/common"
 	"godb/internal/skiplist"
+
+	"github.com/google/uuid"
 )
 
 //type MemTable interface {
@@ -13,7 +15,7 @@ import (
 //var _ MemTable = (*memtable)(nil)
 
 type MemTable struct {
-	id      string
+	id      uuid.UUID
 	storage *skiplist.SkipList
 	size    int
 }
@@ -23,6 +25,7 @@ func New() *MemTable {
 	var stc MemTable
 	stc.size = 0
 	stc.storage = skiplist.New(16)
+	stc.id = uuid.New()
 	return &stc
 }
 
@@ -48,4 +51,8 @@ func (m *MemTable) Delete(key []byte) {
 
 func (m *MemTable) Iterator() *skiplist.Iterator {
 	return m.storage.NewIterator()
+}
+
+func (m *MemTable) GetId() uuid.UUID {
+	return m.id
 }

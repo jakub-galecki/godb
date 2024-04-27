@@ -6,22 +6,35 @@ import (
 	"godb/wal"
 )
 
+// todo: make pool
+type flushable struct {
+	m *memtable.MemTable
+	w *wal.Wal
+}
+
 func (l *db) exceededSize() bool {
 	trace.Debug().Int("memtable_size", l.mem.GetSize())
 	size := l.mem.GetSize()
 	return size == common.MAX_MEMTABLE_THRESHOLD
 }
 
-func (l *db) moveToSink() {
+func (l *db) moveToSink() error {
 	l.mutex.Lock()
-	l.sink = append(l.sink, l.mem)
+	l.sink = append(l.sink, &flushable{
+		m: l.mem,
+		w: l.wl,
+	})
 	l.mem = memtable.New()
+	if err := l.rotateWal(); err != nil {
+		return err
+	}
 	l.mutex.Unlock()
+	return nil
 }
 
 func (l *db) drainSink() {
 	for {
-		var mem *memtable.MemTable
+		var f *flushable
 
 		// todo: create atomic sink size ??
 		// flush all memtables from the sink at once ??
@@ -30,18 +43,20 @@ func (l *db) drainSink() {
 
 		l.mutex.Lock()
 		if len(l.sink) > 0 {
-			mem = l.sink[0]
+			f = l.sink[0]
 		}
 		l.mutex.Unlock()
 
-		if mem != nil {
+		if f != nil {
 			trace.Debug().Msg("got memtable to flush")
 
-			if err := l.flushMemTable(mem); err != nil {
+			if err := l.flushMemTable(f); err != nil {
 				trace.Error().Err(err).Msg("error while flushin memtable")
 			}
 
-			mem = nil
+			f.m = nil
+			f.w = nil
+			f = nil
 
 			l.mutex.Lock()
 			l.sink = l.sink[1:]
@@ -50,29 +65,28 @@ func (l *db) drainSink() {
 	}
 }
 
-func (l *db) flushMemTable(mem *memtable.MemTable) error {
-	if err := l.l0.AddMemtable(l, mem); err != nil {
+func (l *db) flushMemTable(fl *flushable) error {
+	if err := l.l0.AddMemtable(l, fl.m); err != nil {
 		return err
 	}
 
-	if err := l.rotateWal(); err != nil {
+	err := fl.w.Delete()
+	if err != nil {
+		return err
+	}
+
+	if err := l.manifest.fsync(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (l *db) rotateWal() error {
-	err := l.wl.Delete()
+func (l *db) rotateWal() (err error) {
+	l.wl, err = wal.NewWal(wal.GetDefaultOpts(l.opts.path, l.mem.GetId().String()))
 	if err != nil {
 		return err
 	}
-	// todo: remove wal associated with memtable
-	l.wl, err = wal.NewWal(wal.GetDefaultOpts(l.opts.path))
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 

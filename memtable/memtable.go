@@ -3,8 +3,6 @@ package memtable
 import (
 	"godb/common"
 	"godb/internal/skiplist"
-
-	"github.com/google/uuid"
 )
 
 //type MemTable interface {
@@ -15,17 +13,18 @@ import (
 //var _ MemTable = (*memtable)(nil)
 
 type MemTable struct {
-	id      uuid.UUID
+	id      uint64
 	storage *skiplist.SkipList
 	size    int
+	logSeq  uint64
 }
 
 // storageCore common.StorageCore
-func New() *MemTable {
+func New(logSeq uint64) *MemTable {
 	var stc MemTable
 	stc.size = 0
 	stc.storage = skiplist.New(16)
-	stc.id = uuid.New()
+	stc.logSeq = logSeq
 	return &stc
 }
 
@@ -53,6 +52,6 @@ func (m *MemTable) Iterator() *skiplist.Iterator {
 	return m.storage.NewIterator()
 }
 
-func (m *MemTable) GetId() uuid.UUID {
+func (m *MemTable) GetId() uint64 {
 	return m.id
 }

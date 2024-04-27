@@ -37,19 +37,18 @@ func (l *level) Get(key []byte) ([]byte, bool) {
 	return nil, false
 }
 
-func (l *level) AddMemtable(d *db, mem *memtable.MemTable) error {
+func (l *level) AddMemtable(d *db, mem *memtable.MemTable) (*sst.SST, error) {
 	var (
 		table *sst.SST
 		err   error
 	)
 
 	if table, err = sst.WriteMemTable(mem, d.opts.path, l.blockCache, l.getNextSSTId()); err != nil {
-		return err
+		return nil, err
 	}
 	l.ssts = append(l.ssts, table)
-	d.manifest.addSst(l.id, table.GetId())
 	l.curId++
-	return nil
+	return table, nil
 }
 
 func (l *level) getNextSSTId() string {

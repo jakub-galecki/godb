@@ -1,11 +1,14 @@
 package main
 
 import (
+	"cmp"
 	"crypto/sha256"
 	"errors"
 	"godb/sst"
 	"os"
 	"path"
+	"slices"
+	"strconv"
 	"sync"
 
 	"godb/common"
@@ -31,16 +34,18 @@ type StorageEngine interface {
 
 type db struct {
 	id         string
-	mem        *memtable.MemTable // mutable
-	sink       []*flushable       // immutable
+	mem        *memtable.MemTable   // mutable
+	sink       []*memtable.MemTable // immutable
 	flushChan  chan *memtable.MemTable
 	l0         *level
 	levels     []*level
-	wl         *wal.Wal
+	wl         *wal.Manager
+	wlw        wal.Writer
 	blockCache *cache.Cache[[]byte]
 	mutex      sync.Mutex
 	opts       dbOpts
 	manifest   *manifest
+	delChan    chan string
 }
 
 type dbOpts struct {
@@ -77,8 +82,7 @@ func Open(table string, opts ...DbOpt) *db {
 
 	d := db{
 		id:         string(sha256.New().Sum([]byte(table))),
-		mem:        memtable.New(),
-		sink:       make([]*flushable, 0),
+		sink:       make([]*memtable.MemTable, 0),
 		blockCache: cache.New[[]byte](cache.WithVerbose[[]byte](true)),
 		opts:       dbOpts,
 	}
@@ -110,6 +114,31 @@ func (l *db) recover() (err error) {
 		return errors.New("id hash did not match")
 	}
 	l.manifest = m
+
+	walss, err := common.ListDir(path.Join(l.opts.path, common.WAL), func(f string) uint64 {
+		wLogSeq, err := strconv.ParseUint(f, 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		return wLogSeq
+	})
+	if err != nil {
+		return err
+	}
+
+	slices.SortStableFunc(walss, func(a, b uint64) int { return cmp.Compare(a, b) })
+
+	var toDel []wal.WalLogNum
+
+	i := 0
+	for ; i < len(walss); i++ {
+		if walss[i] < l.manifest.LastFlushedSeqNum {
+			toDel = append(toDel, wal.WalLogNum(walss[i]))
+		}
+	}
+
+	err = l.recoverWal(walss[i:])
+
 	err = l.loadLevels()
 	if err != nil {
 		return err
@@ -118,7 +147,9 @@ func (l *db) recover() (err error) {
 	return nil
 }
 
-func (l *db) recoverWal() (err error) {
+func (l *db) recoverWal(wals []uint64) (err error) {
+	// activeMemSeq := wals[len(wals)-1]
+
 	return nil
 }
 
@@ -161,13 +192,14 @@ func (l *db) new() (err error) {
 	if err := common.EnsureDir(l.opts.path); err != nil {
 		return err
 	}
-	wl, err := wal.NewWal(wal.GetDefaultOpts(l.opts.path, l.mem.GetId().String()))
+	l.wl, err = wal.Init(wal.DefaultOpts.WithDir(path.Join(l.opts.path, common.WAL)))
 	if err != nil {
-		panic(err)
+		return err
 	}
-
-	l.wl = wl
-
+	l.wlw, err = l.wl.NewWAL(wal.WalLogNum(l.manifest.SeqNum))
+	if err != nil {
+		return err
+	}
 	sstPath := path.Join(l.opts.path, common.SST_DIR)
 	if err := common.EnsureDir(sstPath); err != nil {
 		return err
@@ -192,4 +224,16 @@ func (l *db) GetSize() int {
 
 func (l *db) Iterator() *skiplist.Iterator {
 	return l.mem.Iterator()
+}
+
+// func (l *db) backgroundCleaner() {
+// 	for file := range l.delChan {
+// 		os.Remove()
+// 	}
+// }
+
+func (l *db) getNextSeqNum() uint64 {
+	res := l.manifest.SeqNum
+	l.manifest.SeqNum++
+	return res
 }

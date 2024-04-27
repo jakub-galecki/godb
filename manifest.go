@@ -11,16 +11,20 @@ import (
 )
 
 type manifest struct {
-	f         *os.File
-	Id        string           `msgpack:"id"`
-	L0        []string         `msgpack:"l0"`     // id's of the sst files
-	Levels    map[int][]string `msgpack:"levels"` // id's of the sst files
-	Table     string           `msgpack:"table"`
-	CreatedAt int64            `msgpack:"created_at"`
-	Path      string           `msgpack:"path"`
-	BlockSize int              `msgpack:"block_size"`
-	NLevels   int              `msgpack:"n_levels"`
-	MaxLevels int              `msgpack:"max_levels"`
+	f                 *os.File
+	Id                string           `msgpack:"id"`
+	L0                []string         `msgpack:"l0"`     // id's of the sst files
+	Levels            map[int][]string `msgpack:"levels"` // id's of the sst files
+	Table             string           `msgpack:"table"`
+	CreatedAt         int64            `msgpack:"created_at"`
+	Path              string           `msgpack:"path"`
+	BlockSize         int              `msgpack:"block_size"`
+	NLevels           int              `msgpack:"n_levels"`
+	MaxLevels         int              `msgpack:"max_levels"`
+	LastFlushedSeqNum uint64           `msg:"unflushed_log_seq"`
+	// seqNum is a global counter for wal and memtable to distinguish between flushed and
+	// unflushed entries. Inspired by pebble approach
+	SeqNum uint64 `msgpack:"seq_num"`
 }
 
 func newManifest(id string, dir, table string, blockSize, maxLevels int) (*manifest, error) {

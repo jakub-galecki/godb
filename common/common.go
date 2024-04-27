@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"os"
+	"path/filepath"
 )
 
 func EnsureDir(path string) error {
@@ -38,4 +39,15 @@ func Concat(xs ...string) string {
 		buf.WriteString(x)
 	}
 	return buf.String()
+}
+
+func ListDir[T any](path string, mut func(string) T) ([]T, error) {
+	var files []T
+	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			files = append(files, mut(path))
+		}
+		return nil
+	})
+	return files, err
 }

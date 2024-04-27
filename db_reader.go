@@ -7,7 +7,7 @@ func (l *db) Get(key []byte) ([]byte, bool) {
 	}
 
 	for _, fl := range l.sink {
-		value, found := fl.m.Get(key)
+		value, found := fl.Get(key)
 		if found {
 			return value, found
 		}

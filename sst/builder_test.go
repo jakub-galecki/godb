@@ -11,7 +11,7 @@ import (
 )
 
 func TestBuilder(t *testing.T) {
-	storage := memtable.New()
+	storage := memtable.New(0)
 
 	for i := 0; i < 1000; i++ {
 		k := fmt.Sprintf("k%d", i)

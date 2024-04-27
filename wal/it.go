@@ -1,5 +1,20 @@
 package wal
 
-type Iterator struct{}
+import (
+	"io"
+	"os"
+)
 
-func (it *Iterator) Next() {}
+type Iterator struct {
+	reader io.Reader
+}
+
+func NewIterator(f *os.File) (*Iterator, error) {
+	return &Iterator{
+		reader: f,
+	}, nil
+}
+
+func (it *Iterator) Next() (string, []byte, []byte) {
+	return "", nil, nil
+}

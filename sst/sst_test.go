@@ -6,7 +6,7 @@ import (
 )
 
 func TestSst(t *testing.T) {
-	mem := memtable.New()
+	mem := memtable.New(0)
 	mem.Set([]byte("test"), []byte("1"))
 	mem.Set([]byte("q"), []byte("w"))
 	mem.Set([]byte("e"), []byte("r"))

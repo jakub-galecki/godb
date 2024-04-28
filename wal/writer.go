@@ -29,6 +29,7 @@ func newWriter(f *os.File, o *Opts) (*writer, error) {
 	w := &writer{
 		file:       f,
 		syncTicker: time.NewTicker(o.SyncInterval),
+		o:          o,
 	}
 
 	w.buf = bufio.NewWriter(f)
@@ -39,7 +40,7 @@ func newWriter(f *os.File, o *Opts) (*writer, error) {
 
 func (w *writer) internalEncode(b []byte) []byte {
 	lsn := w.lsn
-	data := []byte(fmt.Sprintf("%v %d %s\n", time.Now().Unix(), lsn, b))
+	data := []byte(fmt.Sprintf("%v %d|%s\n", time.Now().Unix(), lsn, b))
 	// sum := md5.Sum([]byte(data))
 	return data
 }

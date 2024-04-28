@@ -8,7 +8,7 @@ import (
 	"os"
 	"path"
 	"slices"
-	"strconv"
+	"strings"
 	"sync"
 
 	"godb/common"
@@ -17,6 +17,7 @@ import (
 	"godb/log"
 	"godb/memtable"
 	"godb/wal"
+    multierr "github.com/hashicorp/go-multierror"
 )
 
 var (
@@ -83,7 +84,7 @@ func Open(table string, opts ...DbOpt) *db {
 	d := db{
 		id:         string(sha256.New().Sum([]byte(table))),
 		sink:       make([]*memtable.MemTable, 0),
-		blockCache: cache.New[[]byte](cache.WithVerbose[[]byte](true)),
+		blockCache: cache.New(cache.WithVerbose[[]byte](true)),
 		opts:       dbOpts,
 	}
 
@@ -106,6 +107,7 @@ func Open(table string, opts ...DbOpt) *db {
 }
 
 func (l *db) recover() (err error) {
+	// todo: include scenario where we recover but all memtables were flushed
 	m, err := readManifest(l.opts.path)
 	if err != nil {
 		return err
@@ -114,31 +116,29 @@ func (l *db) recover() (err error) {
 		return errors.New("id hash did not match")
 	}
 	l.manifest = m
-
-	walss, err := common.ListDir(path.Join(l.opts.path, common.WAL), func(f string) uint64 {
-		wLogSeq, err := strconv.ParseUint(f, 10, 64)
-		if err != nil {
-			panic(err)
+	l.wl, err = wal.Init(wal.DefaultOpts.WithDir(path.Join(l.opts.path, common.WAL)))
+	if err != nil {
+		return err
+	}
+	walss, err := common.ListDir(path.Join(l.opts.path, common.WAL), func(f string) (wal.WalLogNum, bool) {
+		logSeqIndex := strings.IndexByte(f, '.')
+		if logSeqIndex < 0 {
+			return 0, false
 		}
-		return wLogSeq
+        return  wal.WalLogNumFromString(f[:logSeqIndex])
 	})
 	if err != nil {
 		return err
 	}
-
-	slices.SortStableFunc(walss, func(a, b uint64) int { return cmp.Compare(a, b) })
-
+	slices.SortStableFunc(walss, func(a, b wal.WalLogNum) int { return cmp.Compare(a, b) })
 	var toDel []wal.WalLogNum
-
 	i := 0
 	for ; i < len(walss); i++ {
-		if walss[i] < l.manifest.LastFlushedSeqNum {
-			toDel = append(toDel, wal.WalLogNum(walss[i]))
+		if uint64(walss[i]) < l.manifest.LastFlushedSeqNum {
+			toDel = append(toDel, walss[i])
 		}
 	}
-
 	err = l.recoverWal(walss[i:])
-
 	err = l.loadLevels()
 	if err != nil {
 		return err
@@ -147,11 +147,68 @@ func (l *db) recover() (err error) {
 	return nil
 }
 
-func (l *db) recoverWal(wals []uint64) (err error) {
-	// activeMemSeq := wals[len(wals)-1]
-
-	return nil
+func (l *db) recoverWal(wals []wal.WalLogNum) (err error) {
+    getMem := func (id wal.WalLogNum) (*memtable.MemTable, error) {
+        f, err := os.Open(id.FileName())
+        defer func() error { return f.Close() }()
+        if err != nil {
+            return nil, err
+        }
+        it,err := wal.NewIterator(f)
+        if err != nil {
+            return nil, err 
+        }
+        
+        mem := memtable.New(uint64(id)) 
+        err = wal.Iter(it, func(wr *wal.WalIteratorResult) error {
+            switch wr.Op {
+            case SET:
+                mem.Set(wr.Key, wr.Value)
+            case DELETE:
+                mem.Delete(wr.Key)
+            default:
+            }
+            return nil
+        })
+        if err != nil {
+            return nil, err
+        }
+        return mem, nil
+    }
+    if len(wals) == 0 {
+        var werr error
+        seqNum := l.getNextSeqNum()
+        l.wlw, werr = l.wl.NewWAL(wal.WalLogNum(seqNum))
+        if werr != nil {
+            return werr
+        }
+        l.mem = memtable.New(seqNum)
+        return nil 
+    }
+    if len(wals) == 1 {
+        l.mem, err = getMem(wals[0]) 
+        return err
+    }
+    for i := 0; i < len(wals)-2; i++ {
+        mem, merr := getMem(wals[i])
+        err = multierr.Append(err, merr)
+        if merr == nil {
+            l.sink = append(l.sink, mem)
+        }
+    }
+    mem, merr := getMem(wals[len(wals)-1])
+    err =  multierr.Append(err, merr)
+    if merr == nil {
+        var werr error
+        l.wlw, werr = l.wl.OpenWAL(wals[len(wals)-1])
+        if werr != nil {
+            return werr
+        } 
+        l.mem = mem
+    }
+    return err
 }
+
 
 func (l *db) loadLevels() (err error) {
 	// load l0 levels
@@ -167,14 +224,16 @@ func (l *db) loadLevels() (err error) {
 	}
 
 	// load the rest of levels
-	l.levels = make([]*level, l.manifest.NLevels-1) // -1 because L0 is stored in separated field
-	for lvl, ssts := range l.manifest.Levels {
-		if l.levels[lvl] == nil {
-			l.levels[lvl] = newLevel(lvl, l.opts.path, l.blockCache)
-		}
-		err = l.levels[lvl].loadSSTs(ssts)
-		if err != nil {
-			return err
+	if l.manifest.LevelCount > 1 {
+		l.levels = make([]*level, l.manifest.LevelCount-1) // -1 because L0 is stored in separated field
+		for i, ssts := range l.manifest.Levels {
+			if l.levels[i] == nil {
+				l.levels[i] = newLevel(i, l.opts.path, l.blockCache)
+			}
+			err = l.levels[i].loadSSTs(ssts)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -192,6 +251,10 @@ func (l *db) new() (err error) {
 	if err := common.EnsureDir(l.opts.path); err != nil {
 		return err
 	}
+	l.manifest, err = newManifest(l.id, l.opts.path, l.opts.table, sst.BLOCK_SIZE, 7)
+	if err != nil {
+		return err
+	}
 	l.wl, err = wal.Init(wal.DefaultOpts.WithDir(path.Join(l.opts.path, common.WAL)))
 	if err != nil {
 		return err
@@ -204,10 +267,7 @@ func (l *db) new() (err error) {
 	if err := common.EnsureDir(sstPath); err != nil {
 		return err
 	}
-	l.manifest, err = newManifest(l.id, l.opts.path, l.opts.table, sst.BLOCK_SIZE, 7)
-	if err != nil {
-		return err
-	}
+	l.mem = memtable.New(l.getNextSeqNum())
 	err = l.manifest.fsync()
 	if err != nil {
 		return err

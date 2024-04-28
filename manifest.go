@@ -19,7 +19,7 @@ type manifest struct {
 	CreatedAt         int64            `msgpack:"created_at"`
 	Path              string           `msgpack:"path"`
 	BlockSize         int              `msgpack:"block_size"`
-	NLevels           int              `msgpack:"n_levels"`
+	LevelCount        int              `msgpack:"level_count"`
 	MaxLevels         int              `msgpack:"max_levels"`
 	LastFlushedSeqNum uint64           `msg:"unflushed_log_seq"`
 	// seqNum is a global counter for wal and memtable to distinguish between flushed and
@@ -34,16 +34,16 @@ func newManifest(id string, dir, table string, blockSize, maxLevels int) (*manif
 	}
 
 	m := &manifest{
-		Id:        id,
-		f:         mFile,
-		L0:        []string{},
-		Levels:    make(map[int][]string),
-		Table:     table,
-		CreatedAt: time.Now().UnixNano(),
-		Path:      dir,
-		BlockSize: blockSize,
-		NLevels:   0,
-		MaxLevels: maxLevels,
+		Id:         id,
+		f:          mFile,
+		L0:         []string{},
+		Levels:     make(map[int][]string),
+		Table:      table,
+		CreatedAt:  time.Now().UnixNano(),
+		Path:       dir,
+		BlockSize:  blockSize,
+		LevelCount: 0,
+		MaxLevels:  maxLevels,
 	}
 
 	return m, nil

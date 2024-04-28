@@ -43,7 +43,7 @@ func (l *level) AddMemtable(d *db, mem *memtable.MemTable) (*sst.SST, error) {
 		err   error
 	)
 
-	if table, err = sst.WriteMemTable(mem, d.opts.path, l.blockCache, l.getNextSSTId()); err != nil {
+	if table, err = sst.WriteMemTable(mem, path.Join(d.opts.path, common.SST_DIR), l.blockCache, l.getNextSSTId()); err != nil {
 		return nil, err
 	}
 	l.ssts = append(l.ssts, table)

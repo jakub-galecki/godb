@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"godb/common"
+	"os"
 	"path"
 	"sync"
 )
@@ -35,11 +36,29 @@ func Init(o *Opts) (*Manager, error) {
 }
 
 func (m *Manager) NewWAL(logNum WalLogNum) (*writer, error) {
-	fname := fmt.Sprintf("%s.log", logNum.String())
-	f, err := common.CreateFile(path.Join(m.opts.Dir, fname))
+	f, err := common.CreateFile(path.Join(m.opts.Dir, logNum.FileName()))
 	if err != nil {
 		return nil, err
 	}
+
+	m.cur, err = newWriter(f, m.opts)
+	if err != nil {
+		return nil, err
+	}
+
+	m.mu.Lock()
+	m.wals.PushBack(logNum)
+	m.mu.Unlock()
+
+	return m.cur, nil
+}
+
+
+func (m *Manager) OpenWAL(logNum WalLogNum) (*writer, error) {
+    f, err := os.Open(path.Join(m.opts.Dir, logNum.FileName()))
+    if err != nil {
+        return nil, err 
+    }
 
 	m.cur, err = newWriter(f, m.opts)
 	if err != nil {

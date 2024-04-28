@@ -9,11 +9,11 @@ import (
 
 func TestCore(t *testing.T) {
 	lsmt := Open("tt")
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		err := lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))
 		assert.NoError(t, err)
 	}
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		val, found := lsmt.Get([]byte(fmt.Sprintf("foo.%d", i)))
 		assert.True(t, found)
 		assert.Equal(t, []byte(fmt.Sprintf("bar.%d", i)), val)

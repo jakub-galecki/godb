@@ -12,12 +12,12 @@ import (
 )
 
 func Open(path string) (*SST, error) {
-	f, err := os.OpenFile(path, os.O_RDONLY, F_PERMISSION)
+	f, err := os.OpenFile(fmt.Sprintf("%s.db", path), os.O_RDONLY, F_PERMISSION)
 	if err != nil {
 		return nil, err
 	}
 
-	st, err := os.Stat(path)
+	st, err := os.Stat(fmt.Sprintf("%s.db", path))
 	if err != nil {
 		return nil, err
 	}

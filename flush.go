@@ -54,6 +54,8 @@ func (l *db) drainSink() {
 }
 
 func (l *db) flush(fl *memtable.MemTable) error {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 	newSst, err := l.l0.AddMemtable(l, fl)
 	if err != nil {
 		return err

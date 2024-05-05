@@ -32,6 +32,8 @@ func (l *level) Get(key []byte) ([]byte, bool) {
 	for _, tbl := range l.ssts {
 		if value, err := tbl.Get(key); err == nil {
 			return value, true
+		} else {
+			trace.Error().Str("sstId", tbl.GetId()).Err(err).Msg("error while getting data from sst")
 		}
 	}
 	return nil, false

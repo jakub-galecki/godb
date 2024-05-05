@@ -2,6 +2,8 @@ package sst
 
 import (
 	"encoding/binary"
+	"os"
+	"path"
 	"sync"
 	"time"
 
@@ -104,11 +106,23 @@ func (bdr *builder) Finish() *SST {
 		panic(err)
 	}
 
+	err = bdr.file.GetFileRef().Close()
+	if err != nil {
+		trace.Error().Err(err).Msg("closing file after SST builder finish")
+		panic(err)
+	}
+
+	fref, err := os.Open(path.Join(bdr.dir, bdr.sstId+".db"))
+	if err != nil {
+		trace.Error().Err(err).Msg("opeing file for read after SST builder finish")
+		panic(err)
+	}
+
 	return &SST{
 		meta:  meta,
 		bf:    bdr.bf,
 		idx:   indexFromBuf(bdr.index.buf),
-		fref:  bdr.file.GetFileRef(),
+		fref:  fref,
 		sstId: bdr.sstId,
 	}
 }

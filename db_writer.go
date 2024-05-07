@@ -42,6 +42,8 @@ func applyToMemtable(mem *memtable.MemTable, batch *Batch) error {
 			mem.Set(a.key, a.value)
 		case DELETE:
 			mem.Delete(a.key)
+		default:
+			panic("unhandled default case")
 		}
 	}
 	batch.committed.Store(true)
@@ -50,9 +52,10 @@ func applyToMemtable(mem *memtable.MemTable, batch *Batch) error {
 
 func (l *db) applyToWal(b *Batch) error {
 	for _, a := range b.actions {
-		b.wg.Add(1)
-		l.wlw.Write(a.byte(), b.wg)
-		b.wg.Wait()
+		err := l.wlw.Write(a.byte())
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

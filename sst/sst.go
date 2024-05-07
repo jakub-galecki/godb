@@ -14,23 +14,17 @@ var (
 )
 
 type SST struct {
-	table string
-
-	bf   *bloom.BloomFilter
-	idx  *index
-	fref *os.File
+	sstId string
+	bf    *bloom.BloomFilter
+	idx   *index
+	fref  *os.File
 
 	meta       tableMeta
 	blockCache *cache.Cache[[]byte]
-	sstId      string
 }
 
 func (s *SST) GetTableMeta() tableMeta {
 	return s.meta
-}
-
-func (s *SST) GetTable() string {
-	return s.table
 }
 
 func (s *SST) GetId() string {

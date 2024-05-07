@@ -53,12 +53,11 @@ func (m *Manager) NewWAL(logNum WalLogNum) (*writer, error) {
 	return m.cur, nil
 }
 
-
 func (m *Manager) OpenWAL(logNum WalLogNum) (*writer, error) {
-    f, err := os.Open(path.Join(m.opts.Dir, logNum.FileName()))
-    if err != nil {
-        return nil, err 
-    }
+	f, err := os.OpenFile(path.Join(m.opts.Dir, logNum.FileName()), os.O_RDWR, 0666)
+	if err != nil {
+		return nil, err
+	}
 
 	m.cur, err = newWriter(f, m.opts)
 	if err != nil {

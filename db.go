@@ -19,8 +19,6 @@ import (
 	"godb/log"
 	"godb/memtable"
 	"godb/wal"
-
-	multierr "github.com/hashicorp/go-multierror"
 )
 
 var (
@@ -145,12 +143,16 @@ func (l *db) recover() (err error) {
 	slices.SortStableFunc(walss, func(a, b wal.WalLogNum) int { return cmp.Compare(a, b) })
 	var toDel []wal.WalLogNum
 	i := 0
-	for ; i < len(walss); i++ {
-		if uint64(walss[i]) < l.manifest.LastFlushedSeqNum {
-			toDel = append(toDel, walss[i])
+	for j := 0; j < len(walss); j++ {
+		if uint64(walss[j]) <= l.manifest.LastFlushedSeqNum {
+			toDel = append(toDel, walss[j])
+			i++
 		}
 	}
 	err = l.recoverWal(walss[i:])
+	if err != nil {
+		return err
+	}
 	err = l.loadLevels()
 	if err != nil {
 		return err
@@ -161,7 +163,7 @@ func (l *db) recover() (err error) {
 
 func (l *db) recoverWal(wals []wal.WalLogNum) (err error) {
 	getMem := func(id wal.WalLogNum) (*memtable.MemTable, error) {
-		f, err := os.Open(id.FileName())
+		f, err := os.Open(l.getLogPath(id.FileName()))
 		defer func() error { return f.Close() }()
 		if err != nil {
 			return nil, err
@@ -188,37 +190,38 @@ func (l *db) recoverWal(wals []wal.WalLogNum) (err error) {
 		return mem, nil
 	}
 	if len(wals) == 0 {
-		var werr error
 		seqNum := l.getNextSeqNum()
-		l.wlw, werr = l.wl.NewWAL(wal.WalLogNum(seqNum))
-		if werr != nil {
-			return werr
+		l.wlw, err = l.wl.NewWAL(wal.WalLogNum(seqNum))
+		if err != nil {
+			return err
 		}
 		l.mem = memtable.New(seqNum)
 		return nil
 	}
 	if len(wals) == 1 {
 		l.mem, err = getMem(wals[0])
+		if err != nil {
+			return err
+		}
+	}
+	for i := 0; i <= len(wals)-2; i++ {
+		mem, err := getMem(wals[i])
+		if err != nil {
+			return err
+		}
+		l.sink = append(l.sink, mem)
+	}
+
+	mem, err := getMem(wals[len(wals)-1])
+	if err != nil {
 		return err
 	}
-	for i := 0; i < len(wals)-2; i++ {
-		mem, merr := getMem(wals[i])
-		err = multierr.Append(err, merr)
-		if merr == nil {
-			l.sink = append(l.sink, mem)
-		}
+	l.wlw, err = l.wl.OpenWAL(wals[len(wals)-1])
+	if err != nil {
+		return err
 	}
-	mem, merr := getMem(wals[len(wals)-1])
-	err = multierr.Append(err, merr)
-	if merr == nil {
-		var werr error
-		l.wlw, werr = l.wl.OpenWAL(wals[len(wals)-1])
-		if werr != nil {
-			return werr
-		}
-		l.mem = mem
-	}
-	return err
+	l.mem = mem
+	return nil
 }
 
 func (l *db) loadLevels() (err error) {
@@ -311,4 +314,8 @@ func (l *db) getNextSeqNum() uint64 {
 
 func (l *db) getSstPath() string {
 	return path.Join(l.opts.path, common.SST_DIR)
+}
+
+func (l *db) getLogPath(fileName string) string {
+	return path.Join(l.opts.path, common.WAL, fileName)
 }

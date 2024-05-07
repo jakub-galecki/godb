@@ -13,16 +13,16 @@ import (
 //var _ MemTable = (*memtable)(nil)
 
 type MemTable struct {
-	id      uint64
+	//id      uint64
 	storage *skiplist.SkipList
-	size    int
-	logSeq  uint64
+	//size    int
+	logSeq uint64
 }
 
 // storageCore common.StorageCore
 func New(logSeq uint64) *MemTable {
 	var stc MemTable
-	stc.size = 0
+	//stc.size = 0
 	stc.storage = skiplist.New(16)
 	stc.logSeq = logSeq
 	return &stc
@@ -52,6 +52,6 @@ func (m *MemTable) Iterator() *skiplist.Iterator {
 	return m.storage.NewIterator()
 }
 
-func (m *MemTable) GetId() uint64 {
-	return m.id
+func (m *MemTable) GetLogSeqNum() uint64 {
+	return m.logSeq
 }

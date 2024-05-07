@@ -33,15 +33,25 @@ func (e *entry) encode() []byte {
 	keyLen := make([]byte, 8)
 	binary.BigEndian.PutUint64(keyLen, uint64(len(e.key)))
 
-	binary.Write(res, binary.BigEndian, keyLen)
-	binary.Write(res, binary.BigEndian, e.key)
-
+	err := binary.Write(res, binary.BigEndian, keyLen)
+	if err != nil {
+		panic(err)
+	}
+	err = binary.Write(res, binary.BigEndian, e.key)
+	if err != nil {
+		panic(err)
+	}
 	valueLen := make([]byte, 8)
 	binary.BigEndian.PutUint64(valueLen, uint64(len(e.value)))
 
-	binary.Write(res, binary.BigEndian, valueLen)
-	binary.Write(res, binary.BigEndian, e.value)
-
+	err = binary.Write(res, binary.BigEndian, valueLen)
+	if err != nil {
+		panic(err)
+	}
+	err = binary.Write(res, binary.BigEndian, e.value)
+	if err != nil {
+		panic(err)
+	}
 	return res.Bytes()
 }
 

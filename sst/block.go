@@ -7,7 +7,7 @@ import (
 
 const (
 	// Maximum block size. When it reaches this size it will be flushed to disk
-	BLOCK_SIZE = 1 << 12
+	BLOCK_SIZE = 1 << 10
 
 	F_PREFIX = "data_block.bin"
 )
@@ -55,7 +55,7 @@ func (b *block) getMin(key []byte) []byte {
 	switch c := bytes.Compare(key, b.min); {
 	case c > 0, c == 0:
 		min = b.min
-	case c < 0:
+	default:
 		min = key
 	}
 

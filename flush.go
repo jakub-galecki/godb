@@ -8,8 +8,7 @@ import (
 
 func (l *db) exceededSize() bool {
 	trace.Debug().Int("memtable_size", l.mem.GetSize())
-	size := l.mem.GetSize()
-	return size == common.MAX_MEMTABLE_THRESHOLD
+	return l.mem.GetSize() > common.MAX_MEMTABLE_THRESHOLD
 }
 
 func (l *db) moveToSink() error {
@@ -61,6 +60,11 @@ func (l *db) flush(fl *memtable.MemTable) error {
 		return err
 	}
 	l.manifest.addSst(l.l0.id, newSst.GetId())
+	if l.manifest.LastFlushedSeqNum > fl.GetLogSeqNum() {
+		// weirdo
+	}
+	l.manifest.LastFlushedSeqNum = fl.GetLogSeqNum()
+	// maybe delete older files
 	if err := l.manifest.fsync(); err != nil {
 		return err
 	}
@@ -79,6 +83,9 @@ func (l *db) maybeFlush(force bool) {
 	trace.Debug().Int("maybe_flush", l.mem.GetSize())
 	if l.exceededSize() || force {
 		trace.Debug().Int("size", l.mem.GetSize()).Msg("memtable size exceeded")
-		l.moveToSink()
+		err := l.moveToSink()
+		if err != nil {
+			trace.Error().Err(err).Msg("error while moving to sink")
+		}
 	}
 }

@@ -21,7 +21,7 @@ type writer struct {
 }
 
 type Writer interface {
-	Write([]byte, *sync.WaitGroup) error
+	Write([]byte) error
 	Close() error
 }
 
@@ -58,7 +58,7 @@ func (w *writer) sync() error {
 	return w.file.Sync()
 }
 
-func (w *writer) Write(data []byte, wg *sync.WaitGroup) error {
+func (w *writer) Write(data []byte) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -67,10 +67,6 @@ func (w *writer) Write(data []byte, wg *sync.WaitGroup) error {
 		return err
 	}
 	w.lsn += 1
-	if wg != nil {
-		wg.Done()
-	}
-
 	return nil
 }
 

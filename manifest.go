@@ -48,6 +48,7 @@ func newManifest(id string, dir, table string, blockSize, maxLevels int) (*Manif
 		BlockSize:  blockSize,
 		LevelCount: 0,
 		MaxLevels:  maxLevels,
+		SeqNum:     1,
 	}
 
 	return m, nil

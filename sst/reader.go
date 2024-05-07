@@ -11,7 +11,7 @@ import (
 	"github.com/bits-and-blooms/bloom/v3"
 )
 
-func Open(path string) (*SST, error) {
+func Open(path, sstId string) (*SST, error) {
 	f, err := os.OpenFile(fmt.Sprintf("%s.db", path), os.O_RDONLY, F_PERMISSION)
 	if err != nil {
 		return nil, err
@@ -65,10 +65,11 @@ func Open(path string) (*SST, error) {
 	}
 
 	return &SST{
-		meta: tm,
-		bf:   bf,
-		idx:  indexFromBuf(bytes.NewBuffer(idxBlock)),
-		fref: f,
+		sstId: sstId,
+		meta:  tm,
+		bf:    bf,
+		idx:   indexFromBuf(bytes.NewBuffer(idxBlock)),
+		fref:  f,
 	}, nil
 }
 
@@ -78,7 +79,7 @@ func (s *SST) Contains(k []byte) bool {
 
 func (s *SST) Get(k []byte) ([]byte, error) {
 	if !s.bf.Test(k) {
-		return nil, fmt.Errorf("not found in bloom")
+		return nil, NOT_FOUND_IN_BLOOM
 	}
 
 	trace.Debug().Str("key", string(k)).

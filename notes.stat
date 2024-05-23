@@ -1,0 +1,18 @@
+permance counter stats for './godb':
+          6,397.80 msec task-clock:u                     #    0.176 CPUs utilized
+                 0      context-switches:u               #    0.000 /sec
+                 0      cpu-migrations:u                 #    0.000 /sec
+             6,495      page-faults:u                    #    1.015 K/sec
+     6,947,662,477      cycles:u                         #    1.086 GHz
+       219,704,725      stalled-cycles-frontend:u        #    3.16% frontend cycles idle
+     3,377,845,349      stalled-cycles-backend:u         #   48.62% backend cycles idle
+     8,117,165,509      instructions:u                   #    1.17  insn per cycle
+                                                  #    0.42  stalled cycles per insn
+     1,715,197,930      branches:u                       #  268.092 M/sec
+        15,274,907      branch-misses:u                  #    0.89% of all branches
+
+      36.422448537 seconds time elapsed
+
+       4.252491000 seconds user
+       2.300886000 seconds sys
+

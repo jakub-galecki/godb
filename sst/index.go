@@ -55,7 +55,10 @@ func indexFromBuf(buf *bytes.Buffer) *index {
 		if len(tmpEnt.key) == 0 && len(tmpEnt.value) == 0 {
 			break
 		}
-		idx.off = append(idx.off, &indexEntry{key: tmpEnt.key, foffset: binary.BigEndian.Uint64(tmpEnt.value)})
+		idx.off = append(idx.off, &indexEntry{
+			key:     tmpEnt.key,
+			foffset: binary.BigEndian.Uint64(tmpEnt.value),
+		})
 		// logger.Debugf("decoded entry key: [%s], value [%s]", tmpEnt.key, tmpEnt.value)
 
 		curLen += n

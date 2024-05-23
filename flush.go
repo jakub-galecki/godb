@@ -31,12 +31,11 @@ func (l *db) drainSink() {
 		// flush all memtables from the sink at once ??
 		// remember to remove them only after they are flushed so that data
 		// can be accepted
-
-		l.mutex.Lock()
 		if len(l.sink) > 0 {
+			l.mutex.Lock()
 			m = l.sink[0]
+			l.mutex.Unlock()
 		}
-		l.mutex.Unlock()
 
 		if m != nil {
 			trace.Debug().Msg("got memtable to flush")

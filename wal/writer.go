@@ -55,7 +55,8 @@ func (w *writer) runSyncWorker() {
 
 // sync requiers to hold lock on mu
 func (w *writer) sync() error {
-	return w.file.Sync()
+	return w.buf.Flush()
+	// return w.file.Sync()
 }
 
 func (w *writer) Write(data []byte) error {
@@ -63,7 +64,7 @@ func (w *writer) Write(data []byte) error {
 	defer w.mu.Unlock()
 
 	enc := w.internalEncode(w.o.Encoder(data))
-	if _, err := w.file.Write(enc); err != nil {
+	if _, err := w.buf.Write(enc); err != nil {
 		return err
 	}
 	w.lsn += 1

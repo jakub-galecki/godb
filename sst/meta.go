@@ -58,7 +58,7 @@ func (tm *tableMeta) writeTo(w io.Writer) error {
 
 func (tm *tableMeta) readFrom(r io.Reader) error {
 	if tm == nil {
-		return fmt.Errorf("aaa")
+		return fmt.Errorf("error reading table metadata")
 	}
 
 	if err := binary.Read(r, binary.BigEndian, &tm.bfOffset); err != nil {

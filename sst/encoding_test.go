@@ -14,13 +14,13 @@ func TestEncodeDecode(t *testing.T) {
 		e = newEntry([]byte("testKey"), []byte("testValue"))
 	)
 
-	n, err := encode(e, w)
+	_, err := encode(e, w)
 	assert.NoError(t, err)
-	trace.Debug().Int("n_bytes", n).Msg("written bytes")
+	// trace.Debug().Int("n_bytes", n).Msg("written bytes")
 	decodedEntry := new(entry)
 	_, err = decode(w, decodedEntry)
 	assert.NoError(t, err)
-	trace.Debug().Str("decoded_key", string(decodedEntry.key)).Str("decoded_value", string(decodedEntry.value))
+	// trace.Debug().Str("decoded_key", string(decodedEntry.key)).Str("decoded_value", string(decodedEntry.value))
 	assert.Equal(t, e.key, decodedEntry.key)
 	assert.Equal(t, e.value, decodedEntry.value)
 }

@@ -108,13 +108,13 @@ func (bdr *builder) Finish() *SST {
 
 	err = bdr.file.GetFileRef().Close()
 	if err != nil {
-		trace.Error().Err(err).Msg("closing file after SST builder finish")
+		// trace.Error().Err(err).Msg("closing file after SST builder finish")
 		panic(err)
 	}
 
 	fref, err := os.Open(path.Join(bdr.dir, bdr.sstId+".db"))
 	if err != nil {
-		trace.Error().Err(err).Msg("opeing file for read after SST builder finish")
+		// trace.Error().Err(err).Msg("opeing file for read after SST builder finish")
 		panic(err)
 	}
 
@@ -159,6 +159,6 @@ func (bdr *builder) flushBlock(b *block) {
 	bdr.offset += uint64(n)
 	bdr.size += uint64(n)
 	if err != nil {
-		trace.Error().Err(err).Msg("error while writing block to disk")
+		// trace.Error().Err(err).Msg("error while writing block to disk")
 	}
 }

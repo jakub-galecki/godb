@@ -6,11 +6,6 @@ import (
 	"github.com/bits-and-blooms/bloom/v3"
 
 	"godb/internal/cache"
-	"godb/log"
-)
-
-var (
-	trace = log.NewLogger("sst")
 )
 
 type SST struct {

@@ -5,9 +5,11 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+	ttrace "runtime/trace"
 )
 
 func main() {
+
 	f, perr := os.Create("cpu.pprof")
 	if perr != nil {
 		panic(perr)
@@ -15,7 +17,14 @@ func main() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	lsmt := Open("test") 
+	tf, err := os.Create("trace.out")
+	if err != nil {
+		panic(perr)
+	}
+
+	ttrace.Start(tf)
+
+	lsmt := Open("test")
 	for i := 0; i < 100000; i++ {
 		_ = lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))
 	}
@@ -30,10 +39,12 @@ func main() {
 		panic(err)
 	}
 	defer memProfileFile.Close()
-    runtime.GC()
+	runtime.GC()
 	// Write memory profile to file
 	if err := pprof.WriteHeapProfile(memProfileFile); err != nil {
 		panic(err)
 	}
-}
 
+	ttrace.Stop()
+	tf.Close()
+}

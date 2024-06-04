@@ -1,13 +1,8 @@
 package vfs
 
 import (
-	"godb/log"
 	"os"
 	"path"
-)
-
-var (
-	trace = log.NewLogger("vfs")
 )
 
 type Reader[T any] interface {
@@ -47,7 +42,7 @@ func NewVFS[T any](dir, file string, flag int, perm os.FileMode) VFS[T] {
 	v.path = path.Join(dir, file)
 	v.f, err = os.OpenFile(v.path, flag, perm)
 	if err != nil {
-		trace.Error().Err(err).Msg("error while opening file")
+		// trace.Error().Err(err).Msg("error while opening file")
 		panic(err)
 	}
 

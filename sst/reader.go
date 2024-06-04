@@ -37,14 +37,14 @@ func Open(path, sstId string) (*SST, error) {
 		return nil, err
 	}
 
-	trace.Debug().
-		Uint64("data_offset", tm.dataOffset).
-		Uint64("data_size", tm.dataSize).
-		Uint64("bloom_filter_offset", tm.bfOffset).
-		Uint64("bloom_filter_size", tm.bfSize).
-		Uint64("index_offset", tm.indexOffset).
-		Uint64("index_size", tm.indexSize).
-		Msg("sst metada")
+	// trace.Debug().
+	// 	Uint64("data_offset", tm.dataOffset).
+	// 	Uint64("data_size", tm.dataSize).
+	// 	Uint64("bloom_filter_offset", tm.bfOffset).
+	// 	Uint64("bloom_filter_size", tm.bfSize).
+	// 	Uint64("index_offset", tm.indexOffset).
+	// 	Uint64("index_size", tm.indexSize).
+	// 	Msg("sst metada")
 
 	bfBytes := make([]byte, tm.bfSize)
 	_, err = f.ReadAt(bfBytes, int64(tm.bfOffset))
@@ -82,8 +82,8 @@ func (s *SST) Get(k []byte) ([]byte, error) {
 		return nil, NOT_FOUND_IN_BLOOM
 	}
 
-	trace.Debug().Str("key", string(k)).
-		Msg("Reading from the sst file")
+	// trace.Debug().Str("key", string(k)).
+	// 	Msg("Reading from the sst file")
 
 	genCacheKey := func(idx string, off uint64) string {
 		return idx + strconv.FormatUint(off, 10)
@@ -108,9 +108,9 @@ func (s *SST) Get(k []byte) ([]byte, error) {
 
 	if s.blockCache != nil {
 		if cEntry, err := s.blockCache.Get(ck); err == nil {
-			trace.Debug().
-				Str("block_entry_id", ck).
-				Msg("got block from cache")
+			// trace.Debug().
+			// 	Str("block_entry_id", ck).
+			// 	Msg("got block from cache")
 
 			return getFromBlock(cEntry, k)
 		}
@@ -124,7 +124,7 @@ func (s *SST) Get(k []byte) ([]byte, error) {
 	if s.blockCache != nil {
 		err = s.blockCache.Set(ck, rawBlock)
 		if err != nil {
-			trace.Error().Err(err).Msg("error while caching block")
+			// trace.Error().Err(err).Msg("error while caching block")
 		}
 	}
 

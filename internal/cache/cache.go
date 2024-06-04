@@ -2,15 +2,12 @@ package cache
 
 import (
 	"errors"
-	"godb/log"
 	"sync"
 	"time"
 )
 
-var (
+const (
 	defaultExp = 5 * time.Second
-
-	trace = log.NewLogger("cache")
 )
 
 type entry[T any] struct {
@@ -119,13 +116,13 @@ func (c *Cache[T]) clearExpired() {
 	t := time.Now().UnixMicro()
 
 	if c.verbose {
-		trace.Debug().
-			Msg("cleaning expired cache entries")
+		// trace.Debug().
+		// 	Msg("cleaning expired cache entries")
 	}
 	for k, e := range c.mu.data {
 		if e.ttl <= t {
-			trace.Debug().
-				Str("removing key", k)
+			// trace.Debug().
+			// 	Str("removing key", k)
 
 			e = nil
 			delete(c.mu.data, k)

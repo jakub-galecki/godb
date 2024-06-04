@@ -3,7 +3,6 @@ package main
 import (
 	"cmp"
 	"crypto/sha256"
-	"encoding/json"
 	"errors"
 	"os"
 	"path"
@@ -11,18 +10,14 @@ import (
 	"strings"
 	"sync"
 
+	"godb/log"
 	"godb/sst"
 
 	"godb/common"
 	"godb/internal/cache"
 	"godb/internal/skiplist"
-	"godb/log"
 	"godb/memtable"
 	"godb/wal"
-)
-
-var (
-	trace = log.NewLogger("db")
 )
 
 type StorageEngine interface {
@@ -48,6 +43,7 @@ type db struct {
 	opts       dbOpts
 	manifest   *Manifest
 	delChan    chan string
+	logger     *log.Logger
 }
 
 type dbOpts struct {
@@ -116,14 +112,14 @@ func (l *db) recover() (err error) {
 	if m.Id != l.id {
 		return errors.New("id hash did not match")
 	}
-	// if DEBUG = true
-	if true {
-		b, err := json.Marshal(m)
-		if err != nil {
-			trace.Error().Err(err).Msg("marshaling Manifest for log")
-		}
-		trace.Info().RawJSON("Manifest", b).Msg("recovered Manifest")
-	}
+	// // if DEBUG = true
+	// if true {
+	// 	b, err := json.Marshal(m)
+	// 	if err != nil {
+	// 		// trace.Error().Err(err).Msg("marshaling Manifest for log")
+	// 	}
+	// 	// trace.Info().RawJSON("Manifest", b).Msg("recovered Manifest")
+	// }
 
 	l.manifest = m
 	l.wl, err = wal.Init(wal.DefaultOpts.WithDir(path.Join(l.opts.path, common.WAL)))

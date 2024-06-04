@@ -37,7 +37,7 @@ func (l *level) Get(key []byte) ([]byte, bool) {
 			if errors.Is(err, sst.NOT_FOUND_IN_BLOOM) {
 				continue
 			}
-			trace.Error().Str("sstId", tbl.GetId()).Err(err).Msg("error while getting data from sst")
+			// trace.Error().Str("sstId", tbl.GetId()).Err(err).Msg("error while getting data from sst")
 		}
 	}
 	return nil, false

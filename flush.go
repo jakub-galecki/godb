@@ -7,7 +7,7 @@ import (
 )
 
 func (l *db) exceededSize() bool {
-	trace.Debug().Int("memtable_size", l.mem.GetSize())
+	// trace.Debug().Int("memtable_size", l.mem.GetSize())
 	return l.mem.GetSize() > common.MAX_MEMTABLE_THRESHOLD
 }
 
@@ -38,10 +38,10 @@ func (l *db) drainSink() {
 		}
 
 		if m != nil {
-			trace.Debug().Msg("got memtable to flush")
+			// trace.Debug().Msg("got memtable to flush")
 
 			if err := l.flush(m); err != nil {
-				trace.Error().Err(err).Msg("error while flushin memtable")
+				// trace.Error().Err(err).Msg("error while flushin memtable")
 			}
 
 			l.mutex.Lock()
@@ -79,12 +79,12 @@ func (l *db) rotateWal(seqNum uint64) (err error) {
 }
 
 func (l *db) maybeFlush(force bool) {
-	trace.Debug().Int("maybe_flush", l.mem.GetSize())
+	// trace.Debug().Int("maybe_flush", l.mem.GetSize())
 	if l.exceededSize() || force {
-		trace.Debug().Int("size", l.mem.GetSize()).Msg("memtable size exceeded")
+		// trace.Debug().Int("size", l.mem.GetSize()).Msg("memtable size exceeded")
 		err := l.moveToSink()
 		if err != nil {
-			trace.Error().Err(err).Msg("error while moving to sink")
+			// trace.Error().Err(err).Msg("error while moving to sink")
 		}
 	}
 }

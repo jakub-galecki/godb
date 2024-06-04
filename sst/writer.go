@@ -8,7 +8,7 @@ import (
 func WriteMemTable(mem *memtable.MemTable, path string, cache *cache.Cache[[]byte], sstId string) (*SST, error) {
 	it := mem.Iterator()
 
-	trace.Debug().Int("MEM SIZE", mem.GetSize()).Msg("Flushing memtable to SST")
+	// trace.Debug().Int("MEM SIZE", mem.GetSize()).Msg("Flushing memtable to SST")
 
 	sstBuilder := NewBuilder(path, mem.GetSize(), sstId)
 	for it.Next() {

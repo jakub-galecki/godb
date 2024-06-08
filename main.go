@@ -5,11 +5,9 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
-	ttrace "runtime/trace"
 )
 
 func main() {
-
 	f, perr := os.Create("cpu.pprof")
 	if perr != nil {
 		panic(perr)
@@ -17,12 +15,12 @@ func main() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	tf, err := os.Create("trace.out")
-	if err != nil {
-		panic(perr)
-	}
+	// tf, err := os.Create("trace.out")
+	// if err != nil {
+	// 	panic(perr)
+	// }
 
-	ttrace.Start(tf)
+	// ttrace.Start(tf)
 
 	lsmt := Open("test")
 	for i := 0; i < 100000; i++ {
@@ -45,6 +43,6 @@ func main() {
 		panic(err)
 	}
 
-	ttrace.Stop()
-	tf.Close()
+	// ttrace.Stop()
+	// tf.Close()
 }

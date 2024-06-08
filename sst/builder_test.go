@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"godb/log"
 	"godb/memtable"
 
 	"github.com/stretchr/testify/assert"
@@ -12,14 +13,13 @@ import (
 
 func TestBuilder(t *testing.T) {
 	storage := memtable.New(0)
-
+	logger := log.NewLogger("")
 	for i := 0; i < 1000; i++ {
 		k := fmt.Sprintf("k%d", i)
 		v := fmt.Sprintf("v%d", i+100)
 		storage.Set([]byte(k), []byte(v))
 	}
-
-	_, err := WriteMemTable(storage, fmt.Sprintf("%s\\%s", os.TempDir(), "ttt"), nil, "0.0")
+	_, err := WriteMemTable(logger, storage, fmt.Sprintf("%s\\%s", os.TempDir(), "ttt"), nil, "0.0")
 	assert.NoError(t, err)
 	//logger.Debugf("%s  -> %v", ss.GetTable(), ss.GetTableMeta())
 

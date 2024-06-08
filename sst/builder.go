@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"godb/log"
 	"godb/vfs"
 
 	"github.com/bits-and-blooms/bloom/v3"
@@ -28,9 +29,10 @@ type builder struct {
 	readyBlocks  chan *block
 	done         sync.WaitGroup
 	sstId        string
+	logger       *log.Logger
 }
 
-func NewBuilder(dir string, n int, id string) Builder {
+func NewBuilder(logger *log.Logger, dir string, n int, id string) Builder {
 	bdr := &builder{
 		offset:       0,
 		readyBlocks:  make(chan *block),
@@ -40,6 +42,7 @@ func NewBuilder(dir string, n int, id string) Builder {
 		bf:           bloom.NewWithEstimates(uint(n), 0.01),
 		currentBlock: newBlock(),
 		sstId:        id,
+		logger:       logger,
 	}
 	bdr.done.Add(1)
 	go bdr.readyBlockWorker()
@@ -65,7 +68,8 @@ func (bdr *builder) Add(key, value []byte) Builder {
 
 func (bdr *builder) Finish() *SST {
 	var (
-		meta = tableMeta{}
+		meta  = tableMeta{}
+		start = time.Now()
 	)
 	if bdr.currentBlock.getSize() > 0 {
 		bdr.readyBlocks <- bdr.currentBlock
@@ -117,7 +121,7 @@ func (bdr *builder) Finish() *SST {
 		// trace.Error().Err(err).Msg("opeing file for read after SST builder finish")
 		panic(err)
 	}
-
+	bdr.logger.Event("sst.Finish", start)
 	return &SST{
 		meta:  meta,
 		bf:    bdr.bf,

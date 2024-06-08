@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"godb/log"
 	"godb/sst"
@@ -83,6 +84,7 @@ func Open(table string, opts ...DbOpt) *db {
 		sink:       make([]*memtable.MemTable, 0),
 		blockCache: cache.New(cache.WithVerbose[[]byte](true)),
 		opts:       dbOpts,
+		logger:     log.NewLogger(""),
 	}
 
 	switch _, err := os.Stat(dbOpts.path); {
@@ -104,6 +106,7 @@ func Open(table string, opts ...DbOpt) *db {
 }
 
 func (l *db) recover() (err error) {
+	start := time.Now()
 	// todo: include scenario where we recover but all memtables were flushed
 	m, err := readManifest(l.opts.path)
 	if err != nil {
@@ -153,11 +156,12 @@ func (l *db) recover() (err error) {
 	if err != nil {
 		return err
 	}
-
+	l.logger.Event("recover", start)
 	return nil
 }
 
 func (l *db) recoverWal(wals []wal.WalLogNum) (err error) {
+	start := time.Now()
 	getMem := func(id wal.WalLogNum) (*memtable.MemTable, error) {
 		f, err := os.Open(l.getLogPath(id.FileName()))
 		defer func() error { return f.Close() }()
@@ -217,10 +221,12 @@ func (l *db) recoverWal(wals []wal.WalLogNum) (err error) {
 		return err
 	}
 	l.mem = mem
+	l.logger.Event("recoverWal", start)
 	return nil
 }
 
 func (l *db) loadLevels() (err error) {
+	start := time.Now()
 	// load l0 levels
 	if l.manifest == nil {
 		return errors.New("Manifest not loaded")
@@ -246,6 +252,7 @@ func (l *db) loadLevels() (err error) {
 			}
 		}
 	}
+	l.logger.Event("loadLevels", start)
 	return nil
 }
 

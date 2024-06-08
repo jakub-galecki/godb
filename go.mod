@@ -10,7 +10,9 @@ require (
 )
 
 require (
+	github.com/edwingeng/wuid v1.0.0 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect
+	github.com/rogpeppe/fastuuid v1.2.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 

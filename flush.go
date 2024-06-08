@@ -4,6 +4,7 @@ import (
 	"godb/common"
 	"godb/memtable"
 	"godb/wal"
+	"time"
 )
 
 func (l *db) exceededSize() bool {
@@ -54,6 +55,7 @@ func (l *db) drainSink() {
 func (l *db) flush(fl *memtable.MemTable) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
+	start := time.Now()
 	newSst, err := l.l0.AddMemtable(l, fl)
 	if err != nil {
 		return err
@@ -67,6 +69,7 @@ func (l *db) flush(fl *memtable.MemTable) error {
 	if err := l.manifest.fsync(); err != nil {
 		return err
 	}
+	l.logger.Event("flush", start)
 	return nil
 }
 

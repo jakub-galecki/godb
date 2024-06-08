@@ -49,7 +49,7 @@ func (l *level) AddMemtable(d *db, mem *memtable.MemTable) (*sst.SST, error) {
 		err   error
 	)
 
-	if table, err = sst.WriteMemTable(mem, path.Join(d.opts.path, common.SST_DIR), l.blockCache,
+	if table, err = sst.WriteMemTable(d.logger, mem, path.Join(d.opts.path, common.SST_DIR), l.blockCache,
 		strconv.FormatUint(mem.GetLogSeqNum(), 10)); err != nil {
 		return nil, err
 	}

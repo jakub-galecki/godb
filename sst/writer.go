@@ -2,15 +2,17 @@ package sst
 
 import (
 	"godb/internal/cache"
+	"godb/log"
 	"godb/memtable"
+	"time"
 )
 
-func WriteMemTable(mem *memtable.MemTable, path string, cache *cache.Cache[[]byte], sstId string) (*SST, error) {
+func WriteMemTable(logger *log.Logger, mem *memtable.MemTable, path string, cache *cache.Cache[[]byte], sstId string) (*SST, error) {
 	it := mem.Iterator()
-
+	start := time.Now()
 	// trace.Debug().Int("MEM SIZE", mem.GetSize()).Msg("Flushing memtable to SST")
 
-	sstBuilder := NewBuilder(path, mem.GetSize(), sstId)
+	sstBuilder := NewBuilder(logger, path, mem.GetSize(), sstId)
 	for it.Next() {
 		k, v := it.Key(), it.Value()
 		sstBuilder = sstBuilder.Add(k, v)
@@ -18,5 +20,6 @@ func WriteMemTable(mem *memtable.MemTable, path string, cache *cache.Cache[[]byt
 
 	sst := sstBuilder.Finish()
 	sst.blockCache = cache
+	logger.Event("WriteMemTable", start)
 	return sst, nil
 }

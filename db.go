@@ -84,7 +84,7 @@ func Open(table string, opts ...DbOpt) *db {
 		sink:       make([]*memtable.MemTable, 0),
 		blockCache: cache.New(cache.WithVerbose[[]byte](true)),
 		opts:       dbOpts,
-		logger:     log.NewLogger(""),
+		logger:     log.NewLogger("godb"),
 	}
 
 	switch _, err := os.Stat(dbOpts.path); {

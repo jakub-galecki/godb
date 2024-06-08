@@ -43,16 +43,13 @@ func NewLogger(name string) *Logger {
 }
 
 func (l *Logger) WithId() *Logger {
-	lc := l.Logger.With().Logger().Output(l.f)
 	id := l.uuidGen.Next()
-	lc.UpdateContext(func(c zerolog.Context) zerolog.Context {
-		return c.Str("id", string(id[:]))
-	})
-	return &Logger{Logger: &lc}
+	lc := zerolog.New(l.f).With().Str("id", string(id[:])).Timestamp().Logger()
+	return &Logger{Logger: &lc, f: l.f, uuidGen: l.uuidGen}
 }
 
 func (l *Logger) Event(name string, start time.Time) {
-	l.Logger.Info().Str("method", "name").Dur("elapsed", time.Since(start))
+	l.Logger.Info().Str("method", name).Dur("elapsed", time.Since(start))
 }
 
 func (l *Logger) Release() {

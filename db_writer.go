@@ -10,14 +10,12 @@ import (
 
 func (l *db) Set(key, value []byte) error {
 	batch := newBatch().Set(key, value)
-	logger := l.logger.WithId()
-	return l.applyBatch(logger, batch)
+	return l.applyBatch(l.logger, batch)
 }
 
 func (l *db) Delete(key []byte) error {
 	batch := newBatch().Delete(key)
-	logger := l.logger.WithId()
-	return l.applyBatch(logger, batch)
+	return l.applyBatch(l.logger, batch)
 }
 
 func (l *db) applyBatch(log *log.Logger, b *Batch) error {

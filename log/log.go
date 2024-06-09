@@ -7,22 +7,22 @@ import (
 	"os"
 	"time"
 
-	"github.com/rogpeppe/fastuuid"
 	"github.com/rs/zerolog"
 )
 
 type Logger struct {
-	*zerolog.Logger
-	f       io.WriteCloser
-	uuidGen *fastuuid.Generator
+	zerolog.Logger
+	f io.WriteCloser
 }
 
-// var loggerPool = sync.Pool{
-// 	New: func() any {
-// 		return new(zerolog.Logger)
-// 	},
-// }
+//	var loggerPool = sync.Pool{
+//		New: func() any {
+//			return new(zerolog.Logger)
+//		},
+//	}
+//
 
+// todo: add  options with log level
 func NewLogger(name string) *Logger {
 	logPath := os.Getenv("GODB_LOG_PATH")
 	var dst io.WriteCloser
@@ -38,18 +38,15 @@ func NewLogger(name string) *Logger {
 	} else {
 		dst = os.Stdout
 	}
-	l := zerolog.New(dst).With().Timestamp().Logger()
-	return &Logger{Logger: &l, f: dst, uuidGen: fastuuid.MustNewGenerator()}
-}
-
-func (l *Logger) WithId() *Logger {
-	id := l.uuidGen.Next()
-	lc := zerolog.New(l.f).With().Str("id", string(id[:])).Timestamp().Logger()
-	return &Logger{Logger: &lc, f: l.f, uuidGen: l.uuidGen}
+	return &Logger{Logger: zerolog.New(dst).With().Timestamp().Logger(), f: dst}
 }
 
 func (l *Logger) Event(name string, start time.Time) {
-	l.Logger.Info().Str("method", name).Dur("elapsed", time.Since(start))
+	dur := time.Since(start)
+	if dur == 0 {
+		return
+	}
+	l.Logger.Info().Str("method", name).Dur("elapsed", dur).Send()
 }
 
 func (l *Logger) Release() {

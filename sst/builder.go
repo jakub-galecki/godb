@@ -50,6 +50,7 @@ func NewBuilder(logger *log.Logger, dir string, n int, id string) Builder {
 }
 
 func (bdr *builder) Add(key, value []byte) Builder {
+	start := time.Now()
 	entry := newEntry(key, value)
 	// ensure that written block size will not be greater than BLOCK_SIZE
 	if size := entry.getSize() + bdr.currentBlock.getSize(); size > BLOCK_SIZE {
@@ -61,8 +62,8 @@ func (bdr *builder) Add(key, value []byte) Builder {
 	if err != nil {
 		panic(err)
 	}
-
 	bdr.bf.Add(key)
+	bdr.logger.Event("sstBuilder.Add", start)
 	return bdr
 }
 
@@ -121,7 +122,7 @@ func (bdr *builder) Finish() *SST {
 		// trace.Error().Err(err).Msg("opeing file for read after SST builder finish")
 		panic(err)
 	}
-	bdr.logger.Event("sst.Finish", start)
+	bdr.logger.Event("sstBuilder.Finish", start)
 	return &SST{
 		meta:  meta,
 		bf:    bdr.bf,

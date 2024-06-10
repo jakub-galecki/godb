@@ -11,24 +11,25 @@ import (
 	"github.com/tinylib/msgp/msgp"
 )
 
+// todo??: use protobuf
 //go:generate msgp
 
 type Manifest struct {
 	f                 *os.File
 	mu                sync.Mutex
-	Id                string     `msgp:"id"`
-	L0                []string   `msgp:"l0"`     // id's of the sst files
-	Levels            [][]string `msgp:"levels"` // id's of the sst files
-	Table             string     `msgp:"table"`
-	CreatedAt         int64      `msgp:"created_at"`
-	Path              string     `msgp:"path"`
-	BlockSize         int        `msgp:"block_size"`
-	LevelCount        int        `msgp:"level_count"`
-	MaxLevels         int        `msgp:"max_levels"`
-	LastFlushedSeqNum uint64     `msgp:"unflushed_log_seq"`
+	Id                string
+	L0                []string   // id's of the sst files
+	Levels            [][]string // id's of the sst files
+	Table             string
+	CreatedAt         int64
+	Path              string
+	BlockSize         int
+	LevelCount        int
+	MaxLevels         int
+	LastFlushedSeqNum uint64
 	// seqNum is a global counter for wal and memtable to distinguish between flushed and
 	// unflushed entries. Inspired by pebble approach
-	SeqNum uint64 `msgp:"seq_num"`
+	SeqNum uint64
 }
 
 func newManifest(id string, dir, table string, blockSize, maxLevels int) (*Manifest, error) {

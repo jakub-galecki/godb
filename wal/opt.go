@@ -16,7 +16,7 @@ type Opts struct {
 }
 
 var DefaultOpts = &Opts{
-	SyncInterval: time.Second,
+	SyncInterval: 50 * time.Millisecond,
 	Encoder:      func(b []byte) []byte { return b },
 	Sync:         true,
 }

@@ -42,7 +42,7 @@ func (l *db) drainSink() {
 			// trace.Debug().Msg("got memtable to flush")
 
 			if err := l.flush(m); err != nil {
-				// trace.Error().Err(err).Msg("error while flushin memtable")
+				panic(err)
 			}
 
 			l.mutex.Lock()

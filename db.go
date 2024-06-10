@@ -89,6 +89,7 @@ func Open(table string, opts ...DbOpt) *db {
 
 	switch _, err := os.Stat(dbOpts.path); {
 	case err == nil:
+		// todo: after recover - wal lsn resets
 		err = d.recover()
 		if err != nil {
 			panic(err)

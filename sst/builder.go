@@ -50,7 +50,7 @@ func NewBuilder(logger *log.Logger, dir string, n int, id string) Builder {
 }
 
 func (bdr *builder) Add(key, value []byte) Builder {
-	start := time.Now()
+	//start := time.Now()
 	entry := newEntry(key, value)
 	// ensure that written block size will not be greater than BLOCK_SIZE
 	if size := entry.getSize() + bdr.currentBlock.getSize(); size > BLOCK_SIZE {
@@ -63,7 +63,7 @@ func (bdr *builder) Add(key, value []byte) Builder {
 		panic(err)
 	}
 	bdr.bf.Add(key)
-	bdr.logger.Event("sstBuilder.Add", start)
+	//bdr.logger.Event("sstBuilder.Add", start)
 	return bdr
 }
 

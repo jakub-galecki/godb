@@ -26,9 +26,9 @@ func main() {
 	for i := 0; i < 100000; i++ {
 		_ = lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))
 	}
-	for i := 0; i < 100000; i++ {
-		_, _ = lsmt.Get([]byte(fmt.Sprintf("foo.%d", i)))
-
+	for i := 99960; i < 100000; i++ {
+		valueFromDb, _ := lsmt.Get([]byte(fmt.Sprintf("foo.%d", i)))
+		fmt.Printf("[%s]\n", valueFromDb)
 	}
 	lsmt.Delete([]byte("foo"))
 

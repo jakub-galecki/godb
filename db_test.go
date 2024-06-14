@@ -7,6 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// func clearDb(name string) error {
+// }
+
 func TestCore(t *testing.T) {
 	lsmt := Open("tt")
 	for i := 0; i < 1000000; i++ {
@@ -18,5 +21,6 @@ func TestCore(t *testing.T) {
 		assert.True(t, found)
 		assert.Equal(t, []byte(fmt.Sprintf("bar.%d", i)), val)
 	}
+
 	//lsmt.Delete([]byte("foo"))
 }

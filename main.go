@@ -23,10 +23,10 @@ func main() {
 	// ttrace.Start(tf)
 
 	lsmt := Open("test")
-	for i := 0; i < 100000; i++ {
-		_ = lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))
-	}
-	for i := 99960; i < 100000; i++ {
+	// for i := 0; i < 1000000; i++ {
+	// 	_ = lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))
+	// }
+	for i := 0; i < 10; i++ {
 		valueFromDb, _ := lsmt.Get([]byte(fmt.Sprintf("foo.%d", i)))
 		fmt.Printf("[%s]\n", valueFromDb)
 	}

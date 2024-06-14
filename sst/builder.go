@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"os"
 	"path"
-	"sync"
 	"time"
 
 	"godb/log"
@@ -26,8 +25,6 @@ type builder struct {
 	file         vfs.VFS[block]
 	bf           *bloom.BloomFilter
 	index        *indexBuilder // one block should be enough for now but should be changes
-	readyBlocks  chan *block
-	done         sync.WaitGroup
 	sstId        string
 	logger       *log.Logger
 }
@@ -35,7 +32,6 @@ type builder struct {
 func NewBuilder(logger *log.Logger, dir string, n int, id string) Builder {
 	bdr := &builder{
 		offset:       0,
-		readyBlocks:  make(chan *block),
 		dir:          dir,
 		file:         vfs.NewVFS[block](dir, id+".db", F_FLAGS, F_PERMISSION),
 		index:        newBuilderIndex(),
@@ -44,8 +40,6 @@ func NewBuilder(logger *log.Logger, dir string, n int, id string) Builder {
 		sstId:        id,
 		logger:       logger,
 	}
-	bdr.done.Add(1)
-	go bdr.readyBlockWorker()
 	return bdr
 }
 
@@ -55,7 +49,7 @@ func (bdr *builder) Add(key, value []byte) Builder {
 	// ensure that written block size will not be greater than BLOCK_SIZE
 	if size := entry.getSize() + bdr.currentBlock.getSize(); size > BLOCK_SIZE {
 		// logger.Debug("SST::BUILDER::ADD block size > BLOCK_SIZE %d", size)
-		bdr.readyBlocks <- bdr.currentBlock
+		bdr.flushBlock(bdr.currentBlock)
 		bdr.currentBlock = newBlock()
 	}
 	err := bdr.currentBlock.add(entry)
@@ -73,11 +67,8 @@ func (bdr *builder) Finish() *SST {
 		start = time.Now()
 	)
 	if bdr.currentBlock.getSize() > 0 {
-		bdr.readyBlocks <- bdr.currentBlock
+		bdr.flushBlock(bdr.currentBlock)
 	}
-	close(bdr.readyBlocks)
-	bdr.done.Wait()
-
 	// data info
 	meta.dataOffset = 0
 	meta.dataSize = bdr.size
@@ -132,22 +123,6 @@ func (bdr *builder) Finish() *SST {
 	}
 }
 
-func (bdr *builder) readyBlockWorker() {
-	//timer := time.NewTimer()
-	for {
-		select {
-		case blk, ok := <-bdr.readyBlocks:
-			if !ok {
-				bdr.done.Done()
-				return
-			}
-			bdr.flushBlock(blk)
-		default:
-			time.Sleep(10 * time.Millisecond)
-		}
-	}
-}
-
 func (bdr *builder) addIndex(min []byte) {
 	offset := make([]byte, 8)
 	binary.BigEndian.PutUint64(offset, bdr.offset)
@@ -164,6 +139,6 @@ func (bdr *builder) flushBlock(b *block) {
 	bdr.offset += uint64(n)
 	bdr.size += uint64(n)
 	if err != nil {
-		// trace.Error().Err(err).Msg("error while writing block to disk")
+		bdr.logger.Error().Err(err).Msg("error while writing block to disk")
 	}
 }

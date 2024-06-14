@@ -2,25 +2,23 @@ package main
 
 import (
 	"fmt"
-	"time"
 
-	"godb/log"
 	"godb/memtable"
 )
 
 func (l *db) Set(key, value []byte) error {
 	batch := newBatch().Set(key, value)
-	return l.applyBatch(l.logger, batch)
+	return l.applyBatch(batch)
 }
 
 func (l *db) Delete(key []byte) error {
 	batch := newBatch().Delete(key)
-	return l.applyBatch(l.logger, batch)
+	return l.applyBatch(batch)
 }
 
-func (l *db) applyBatch(log *log.Logger, b *Batch) error {
+func (l *db) applyBatch(b *Batch) error {
 	defer b.release()
-	start := time.Now()
+	// start := time.Now()
 
 	if b.committed.Load() {
 		return fmt.Errorf("batch already commited")
@@ -33,7 +31,7 @@ func (l *db) applyBatch(log *log.Logger, b *Batch) error {
 	if err := applyToMemtable(l.mem, b); err != nil {
 		return err
 	}
-	log.Event("applyBatch", start)
+	// log.Event("applyBatch", start)
 	l.maybeFlush(b.forceFlush)
 	return nil
 }

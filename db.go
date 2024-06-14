@@ -3,6 +3,7 @@ package main
 import (
 	"cmp"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"os"
 	"path"
@@ -43,8 +44,8 @@ type db struct {
 	mutex      sync.Mutex
 	opts       dbOpts
 	manifest   *Manifest
-	delChan    chan string
 	logger     *log.Logger
+	cleaner    *cleaner
 }
 
 type dbOpts struct {
@@ -85,8 +86,8 @@ func Open(table string, opts ...DbOpt) *db {
 		blockCache: cache.New(cache.WithVerbose[[]byte](true)),
 		opts:       dbOpts,
 		logger:     log.NewLogger("godb"),
+		cleaner:    newClener(),
 	}
-
 	switch _, err := os.Stat(dbOpts.path); {
 	case err == nil:
 		// todo: after recover - wal lsn resets
@@ -100,9 +101,7 @@ func Open(table string, opts ...DbOpt) *db {
 			panic(err)
 		}
 	}
-
 	go d.drainSink()
-
 	return &d
 }
 
@@ -117,13 +116,13 @@ func (l *db) recover() (err error) {
 		return errors.New("id hash did not match")
 	}
 	// // if DEBUG = true
-	// if true {
-	// 	b, err := json.Marshal(m)
-	// 	if err != nil {
-	// 		// trace.Error().Err(err).Msg("marshaling Manifest for log")
-	// 	}
-	// 	// trace.Info().RawJSON("Manifest", b).Msg("recovered Manifest")
-	// }
+	if true {
+		b, err := json.Marshal(m)
+		if err != nil {
+			l.logger.Error().Err(err).Msg("marshaling Manifest for log")
+		}
+		l.logger.Info().RawJSON("Manifest", b).Msg("recovered Manifest")
+	}
 
 	l.manifest = m
 	l.wl, err = wal.Init(wal.DefaultOpts.WithDir(path.Join(l.opts.path, common.WAL)))
@@ -141,14 +140,15 @@ func (l *db) recover() (err error) {
 		return err
 	}
 	slices.SortStableFunc(walss, func(a, b wal.WalLogNum) int { return cmp.Compare(a, b) })
-	var toDel []wal.WalLogNum
+	var toDel []string
 	i := 0
 	for j := 0; j < len(walss); j++ {
 		if uint64(walss[j]) <= l.manifest.LastFlushedSeqNum {
-			toDel = append(toDel, walss[j])
+			toDel = append(toDel, path.Join(l.opts.path, common.WAL, walss[j].FileName())) // SST
 			i++
 		}
 	}
+	l.cleaner.schedule(toDel)
 	err = l.recoverWal(walss[i:])
 	if err != nil {
 		return err

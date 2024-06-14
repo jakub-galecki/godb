@@ -4,6 +4,7 @@ import (
 	"godb/common"
 	"godb/memtable"
 	"godb/wal"
+	"log"
 	"time"
 )
 
@@ -62,13 +63,14 @@ func (l *db) flush(fl *memtable.MemTable) error {
 	}
 	l.manifest.addSst(l.l0.id, newSst.GetId())
 	if l.manifest.LastFlushedSeqNum > fl.GetLogSeqNum() {
-		// weirdo
+		log.Fatalf("last flushed seq num higher than memtable log seq num")
 	}
 	l.manifest.LastFlushedSeqNum = fl.GetLogSeqNum()
 	// maybe delete older files
 	if err := l.manifest.fsync(); err != nil {
 		return err
 	}
+
 	l.logger.Event("flush", start)
 	return nil
 }

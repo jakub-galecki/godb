@@ -1,7 +1,7 @@
 === Structure ====
-# # # # # # # # # # # # # # # # # # # #
-#  Size   # {k: key, v: value}  # ... #
-# # # # # # # # # # # # # # # # # # # #
+```
+Size    {k: key, v: value}  # ... #
+```
 
 1. Block Restrictions
 - Fixed Maximum Size => BLOCK_SIZE 

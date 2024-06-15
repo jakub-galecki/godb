@@ -4,3 +4,8 @@ tasks:
   build:
     cmds:
       - go build
+  gen:
+    preconditions:
+      -  go install github.com/tinylib/msgp@latest
+    cmds:
+      - go generate

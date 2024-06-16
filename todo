@@ -1,4 +1,0 @@
-[X] Builder does not include whole memtable in sst file
-[X] Builder duplicates files - infinite loop
-[] Consider what to do with the not completed flushes
-[] For small memtable size and large input TestCore fails

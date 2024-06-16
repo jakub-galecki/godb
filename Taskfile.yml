@@ -9,3 +9,9 @@ tasks:
       -  go install github.com/tinylib/msgp@latest
     cmds:
       - go generate
+  run:
+    deps: [gen, build]
+    cmds:
+      - ./godb
+    env:
+      GODB_LOG_PATH: /tmp/logs

@@ -1,4 +1,4 @@
-package skiplist
+package skiplisttodo
 
 import (
 	"fmt"

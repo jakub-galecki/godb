@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"godb/common"
 	"godb/memtable"
 )
 
@@ -39,9 +40,9 @@ func (l *db) applyBatch(b *Batch) error {
 func applyToMemtable(mem *memtable.MemTable, batch *Batch) error {
 	for _, a := range batch.actions {
 		switch a.kind {
-		case SET:
+		case common.SET:
 			mem.Set(a.key, a.value)
-		case DELETE:
+		case common.DELETE:
 			mem.Delete(a.key)
 		default:
 			panic("unhandled default case")

@@ -1,19 +1,13 @@
 package common
 
-type IteratorCore interface {
-	Iterator() Iterator
+type InnerStorage interface {
+    Set(uKey InternalKey, value []byte) error 
+    Get(key []byte) ([]byte, error) 
+    GetSize() uint64 
+    Delete(key InternalKey) error 
+//    NewIter() *InnerStorageIterator
 }
 
-type Iterator interface {
-	Next() ([]byte, []byte, error)
-	HasNext() bool
+type InnerStorageIterator interface {
 }
 
-type StorageCore interface {
-	IteratorCore
-	Set(key, value []byte)
-	Get(key []byte) ([]byte, bool)
-	GetSize() int
-	GetSizeBytes() int
-	Put(key, value interface{})
-}

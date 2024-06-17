@@ -14,7 +14,7 @@ import (
 
 type MemTable struct {
 	//id      uint64
-	storage *skiplist.SkipList
+	storage common.InnerStorage
 	//size    int
 	logSeq uint64
 }

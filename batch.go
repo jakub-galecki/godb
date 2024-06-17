@@ -1,15 +1,11 @@
 package main
 
 import (
+	"godb/common"
 	"sync"
 	"sync/atomic"
 )
 
-const (
-	SET = iota
-	GET
-	DELETE
-)
 
 var batchPool = sync.Pool{New: func() interface{} { return new(Batch) }}
 
@@ -36,13 +32,13 @@ func (b *Batch) release() {
 }
 
 func (b *Batch) Set(key, value []byte) *Batch {
-	newAction := newAction(key, value, SET)
+	newAction := newAction(key, value, common.SET)
 	b.actions = append(b.actions, &newAction)
 	return b
 }
 
 func (b *Batch) Delete(key []byte) *Batch {
-	newAction := newAction(key, nil, DELETE)
+	newAction := newAction(key, nil, common.DELETE)
 	b.actions = append(b.actions, &newAction)
 	return b
 }

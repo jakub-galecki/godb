@@ -19,3 +19,10 @@ const (
 	WAL      = "wal"
 	MANIFEST = "MANIFEST"
 )
+
+
+const (
+	SET = iota
+	GET
+	DELETE
+)

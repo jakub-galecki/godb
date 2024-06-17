@@ -17,7 +17,6 @@ import (
 
 	"godb/common"
 	"godb/internal/cache"
-	"godb/internal/skiplist"
 	"godb/memtable"
 	"godb/wal"
 )
@@ -300,7 +299,7 @@ func (l *db) GetSize() int {
 	return l.mem.GetSize()
 }
 
-func (l *db) Iterator() *skiplist.Iterator {
+func (l *db) Iterator() common.InnerStorageIterator {
 	return l.mem.Iterator()
 }
 

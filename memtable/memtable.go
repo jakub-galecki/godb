@@ -23,7 +23,7 @@ type MemTable struct {
 func New(logSeq uint64) *MemTable {
 	var stc MemTable
 	//stc.size = 0
-	stc.storage = skiplist.New(16)
+	stc.storage = skiplist.New()
 	stc.logSeq = logSeq
 	return &stc
 }

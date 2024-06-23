@@ -19,5 +19,6 @@ func newAction(key, value []byte, kind int) action {
 }
 
 func (a *action) byte() []byte {
+	// todo: optimize
 	return []byte(fmt.Sprintf("%d %s %s", a.kind, a.key, a.value))
 }

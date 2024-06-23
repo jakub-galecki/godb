@@ -1,6 +1,7 @@
 package memtable
 
 import (
+	"errors"
 	"godb/common"
 	"godb/internal/skiplist"
 )
@@ -16,42 +17,43 @@ type MemTable struct {
 	//id      uint64
 	storage common.InnerStorage
 	//size    int
-	logSeq uint64
+	fileNum uint64
 }
 
 // storageCore common.StorageCore
-func New(logSeq uint64) *MemTable {
+func New(fileNum uint64) *MemTable {
 	var stc MemTable
-	//stc.size = 0
 	stc.storage = skiplist.New()
-	stc.logSeq = logSeq
+	stc.fileNum = fileNum
 	return &stc
 }
 
 func (m *MemTable) Set(key, value []byte) {
-	m.storage.Set(key, value)
+	m.storage.Set(common.InternalKey{UserKey: key}, value)
 }
 
-func (m *MemTable) Get(key []byte) ([]byte, bool) {
+func (m *MemTable) Get(key []byte) ([]byte, error) {
 	val, found := m.storage.Get(key)
 	if val != nil {
 		return val, found
 	}
-	return nil, false
+	return nil, errors.New("not found")
 }
 
 func (m *MemTable) GetSize() int {
-	return m.storage.GetSize()
+	// return m.storage.GetSize()
+	// todo
+	return 0
 }
 
-func (m *MemTable) Delete(key []byte) {
-	m.storage.Set(key, common.TOMBSTONE)
+func (m *MemTable) Delete(key []byte) bool {
+	return m.storage.Delete(common.InternalKey{UserKey: key})
 }
 
-func (m *MemTable) Iterator() *skiplist.Iterator {
-	return m.storage.NewIterator()
+func (m *MemTable) Iterator() common.InnerStorageIterator {
+	return m.storage.NewIter()
 }
 
-func (m *MemTable) GetLogSeqNum() uint64 {
-	return m.logSeq
+func (m *MemTable) GetFileNum() uint64 {
+	return m.fileNum
 }

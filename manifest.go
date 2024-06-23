@@ -15,21 +15,24 @@ import (
 //go:generate msgp
 
 type Manifest struct {
-	f                 *os.File
-	mu                sync.Mutex
-	Id                string
-	L0                []string   // id's of the sst files
-	Levels            [][]string // id's of the sst files
-	Table             string
-	CreatedAt         int64
-	Path              string
-	BlockSize         int
-	LevelCount        int
-	MaxLevels         int
-	LastFlushedSeqNum uint64
-	// seqNum is a global counter for wal and memtable to distinguish between flushed and
-	// unflushed entries. Inspired by pebble approach
+	f          *os.File
+	mu         sync.Mutex
+	Id         string
+	L0         []string   // id's of the sst files
+	Levels     [][]string // id's of the sst files
+	Table      string
+	CreatedAt  int64
+	Path       string
+	BlockSize  int
+	LevelCount int
+	MaxLevels  int
+
+	// seqNum is a global counter for memtable writes to distinguish between new and old entries.
 	SeqNum uint64
+
+	// nextFileNumber indicates next file number that will be assigned to wal and memtable.
+	NextFileNumber        uint64
+	LastFlushedFileNumber uint64
 }
 
 func newManifest(id string, dir, table string, blockSize, maxLevels int) (*Manifest, error) {

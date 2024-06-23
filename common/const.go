@@ -20,9 +20,8 @@ const (
 	MANIFEST = "MANIFEST"
 )
 
-
 const (
-	SET = iota
+	SET uint8 = iota
 	GET
 	DELETE
 )

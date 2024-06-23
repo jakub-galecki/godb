@@ -62,10 +62,10 @@ func (l *db) flush(fl *memtable.MemTable) error {
 		return err
 	}
 	l.manifest.addSst(l.l0.id, newSst.GetId())
-	if l.manifest.LastFlushedSeqNum > fl.GetLogSeqNum() {
+	if l.manifest.LastFlushedFileNumber > fl.GetLogSeqNum() {
 		log.Fatalf("last flushed seq num higher than memtable log seq num")
 	}
-	l.manifest.LastFlushedSeqNum = fl.GetLogSeqNum()
+	l.manifest.LastFlushedFileNumber = fl.GetLogSeqNum()
 	// maybe delete older files
 	if err := l.manifest.fsync(); err != nil {
 		return err

@@ -2,160 +2,137 @@ package skiplist
 
 import (
 	"bytes"
-	"errors"
-	"godb/common"
 	"math/rand"
 )
 
-var _ common.InnerStorage = (*skipList)(nil)
-
-/*
-Implementation based on:
-	Maurice Herlihy and Nir Shavit. 2012. The Art of Multiprocessor Programming,
-	Revised Reprint (1st. ed.). Morgan Kaufmann Publishers Inc., San Francisco, CA, USA.
-*/
-
-type skipList struct {
-	maxLevel int
+type SkipList struct {
 	head     *node
-	tail     *node
+	maxLevel int
+	size     int
+	bytes    int
 }
 
-func New(maxLvl int) *skipList {
-	skp := &skipList{maxLevel: maxLvl}
-	skp.head = newSentinelNode(maxLvl)
-	skp.tail = newSentinelNode(maxLvl)
-	for i := range skp.head.forwards {
-		skp.head.forwards[i].set(skp.tail, false)
+type node struct {
+	key   []byte
+	value []byte
+	next  []*node
+}
+
+func newNode(key, value []byte, lvl int) *node {
+	n := &node{
+		key:   key,
+		value: value,
+		next:  make([]*node, lvl),
 	}
-	return skp
+	return n
 }
 
-func (skp *skipList) find(key []byte, preds, succs []*node) bool {
-	var (
-		marked bool
+func New(maxLvl int) *SkipList {
+	skl := &SkipList{
+		maxLevel: maxLvl,
+	}
+	skl.head = &node{
+		next: make([]*node, maxLvl),
+	}
+	return skl
+}
 
-		pred, curr, succ *node
+func (skl *SkipList) Reset() {}
+
+func (skl *SkipList) Get(key []byte) ([]byte, bool) {
+	var (
+		head = skl.head
 	)
-	pred = skp.head
-	for i := skp.maxLevel; i >= 0; i-- {
-		curr = pred.forwards[i].getRef()
-		for {
-			succ = curr.forwards[i].get(&marked)
-			for marked {
-				curr = pred.forwards[i].getRef()
-				succ = curr.forwards[i].get(&marked)
-			}
-			if bytes.Compare(curr.key, key) < 0 {
-				pred = curr
-				curr = succ
-			} else {
+
+	for i := skl.maxLevel - 1; i >= 0; i-- {
+		current := head.next[i]
+		for ; current != nil; current = current.next[i] {
+			cmp := bytes.Compare(current.key, key)
+			if cmp == 0 {
+				return current.value, true
+			} else if cmp > 0 {
 				break
 			}
+			head = current
 		}
-		preds[i] = pred
-		succs[i] = curr
 	}
-	return bytes.Equal(curr.key, key)
+	return nil, false
 }
 
-func (skp *skipList) Set(key common.InternalKey, value []byte) error {
-	var (
-		topLevel = randomLevel(skp.maxLevel)
-		preds    = make([]*node, skp.maxLevel+1)
-		succs    = make([]*node, skp.maxLevel+1)
-		nd       = newNode(key, value, topLevel)
-	)
+func (skl *SkipList) Set(key, value []byte) {
+	prevNodes := skl.getPreviousNodes(key)
 
-	for {
-		found := skp.find(key.UserKey, preds, succs)
-		if found {
-			// compare meta key if the same then error
-			return nil
-		}
-		for i := 0; i < topLevel; i++ {
-			succ := succs[i]
-			nd.forwards[i].set(succ, false)
-		}
+	if prevNodes[0].next[0] != nil && bytes.Equal(prevNodes[0].next[0].key, key) {
+		prevNodes[0].next[0].value = value
+		return
+	}
 
-		pred := preds[0]
-		succ := succs[0]
-		nd.forwards[0].set(succ, false)
-		if !pred.forwards[0].compAndSet(succ, nd, false, false) {
-			continue
-		}
-		for i := 1; i < topLevel; i++ {
-			for {
-				pred = preds[i]
-				succ = succs[i]
-				if pred.forwards[i].compAndSet(succ, nd, false, false) {
-					break
-				}
-				_ = skp.find(key.UserKey, preds, succs)
+	lvl := randomLevel(skl.maxLevel)
+	n := newNode(key, value, lvl)
+
+	for i := range n.next {
+		n.next[i] = prevNodes[i].next[i]
+		prevNodes[i].next[i] = n
+	}
+
+	skl.size++
+	skl.bytes += len(key) + len(value)
+}
+
+func (skl *SkipList) GetSize() int {
+	return skl.bytes
+}
+
+func (skl *SkipList) getPreviousNodes(key []byte) []*node {
+	previousNodes := make([]*node, skl.maxLevel)
+
+	head := skl.head
+	for i := skl.maxLevel - 1; i >= 0; i-- {
+		for current := head.next[i]; current != nil; current = current.next[i] {
+			if cmp := bytes.Compare(current.key, key); cmp >= 0 {
+				break
 			}
+			head = current
 		}
-		return nil
+		previousNodes[i] = head
 	}
-}
 
-func (skp *skipList) Delete(key common.InternalKey) bool {
-	var (
-		preds = make([]*node, skp.maxLevel+1)
-		succs = make([]*node, skp.maxLevel+1)
-		succ  *node
-	)
-	for {
-		found := skp.find(key.UserKey, preds, succs)
-		if !found {
-			return false
-		}
-		toRemove := succs[0]
-		marked := false
-		for i := toRemove.level - 1; i >= 1; i-- {
-			succ = toRemove.forwards[i].get(&marked)
-			for !marked {
-				toRemove.forwards[i].setMark(true)
-				succ = toRemove.forwards[i].get(&marked)
-			}
-		}
-		marked = false
-		succ = toRemove.forwards[0].get(&marked)
-		for {
-			iMarkedIt := toRemove.forwards[0].compAndSet(succ, succ, false, true)
-			if iMarkedIt {
-				return true
-			} else if marked {
-				return false
-			}
-		}
-	}
-}
-
-func (skp *skipList) Get(key []byte) ([]byte, error) {
-	var (
-		preds = make([]*node, skp.maxLevel+1)
-		succs = make([]*node, skp.maxLevel+1)
-	)
-
-	found := skp.find(key, preds, succs)
-	if found {
-		return succs[0].value, nil
-	}
-	return nil, errors.New("not found")
-}
-
-func (skp *skipList) NewIter() common.InnerStorageIterator {
-	return nil
-}
-
-func (skp *skipList) GetSize() uint64 {
-	return 0
+	return previousNodes
 }
 
 func randomLevel(maxLevel int) int {
 	lvl := 1
+
 	for lvl < maxLevel && rand.Intn(4) == 0 {
 		lvl++
 	}
+
 	return lvl
+}
+
+func (skl *SkipList) NewIterator() *Iterator {
+	return &Iterator{
+		cursor: skl.head,
+	}
+}
+
+type Iterator struct {
+	cursor *node
+}
+
+func (it *Iterator) Next() bool {
+	if len(it.cursor.next) == 0 || it.cursor.next[0] == nil {
+		return false
+	}
+
+	it.cursor = it.cursor.next[0]
+	return true
+}
+
+func (it *Iterator) Key() []byte {
+	return it.cursor.key
+}
+
+func (it *Iterator) Value() []byte {
+	return it.cursor.value
 }

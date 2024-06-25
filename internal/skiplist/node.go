@@ -1,17 +1,19 @@
 package skiplist
 
+import "godb/common"
+
 type node struct {
 	key      []byte
-	keyMeta  uint64
+	keyMeta  common.KeyMeta
 	value    []byte
 	forwards []*atomicMarkableRef[node]
 	level    int
 }
 
-func newNode(key []byte, value []byte, level int) *node {
+func newNode(key common.InternalKey, value []byte, level int) *node {
 	res := &node{
-		key:      key,
-		keyMeta:  0,
+		key:      key.UserKey,
+		keyMeta:  key.GetMeta(),
 		value:    value,
 		forwards: make([]*atomicMarkableRef[node], level+1),
 		level:    level,

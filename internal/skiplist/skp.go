@@ -23,7 +23,6 @@ type skipList struct {
 
 func New(maxLvl int) *skipList {
 	skp := &skipList{maxLevel: maxLvl}
-	// todo:   min max value for sentinels
 	skp.head = newSentinelNode(maxLvl)
 	skp.tail = newSentinelNode(maxLvl)
 	for i := range skp.head.forwards {
@@ -60,18 +59,19 @@ func (skp *skipList) find(key []byte, preds, succs []*node) bool {
 	return bytes.Equal(curr.key, key)
 }
 
-func (skp *skipList) Set(key common.InternalKey, value []byte) {
+func (skp *skipList) Set(key common.InternalKey, value []byte) error {
 	var (
 		topLevel = randomLevel(skp.maxLevel)
 		preds    = make([]*node, skp.maxLevel+1)
 		succs    = make([]*node, skp.maxLevel+1)
-		nd       = newNode(key.UserKey, value, topLevel)
+		nd       = newNode(key, value, topLevel)
 	)
 
 	for {
 		found := skp.find(key.UserKey, preds, succs)
 		if found {
-			return
+			// compare meta key if the same then error
+			return nil
 		}
 		for i := 0; i < topLevel; i++ {
 			succ := succs[i]
@@ -94,7 +94,7 @@ func (skp *skipList) Set(key common.InternalKey, value []byte) {
 				_ = skp.find(key.UserKey, preds, succs)
 			}
 		}
-		return
+		return nil
 	}
 }
 

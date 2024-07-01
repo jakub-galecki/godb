@@ -46,3 +46,7 @@ func (ik *InternalKey) Compare(other *InternalKey) int {
 	*/
 	return cmp.Compare(ik.meta, other.meta)
 }
+
+func (ik *InternalKey) GetSize() int {
+	return len(ik.UserKey) + 8
+}

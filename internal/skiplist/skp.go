@@ -43,26 +43,13 @@ func New(maxLvl int) *SkipList {
 func (skl *SkipList) Reset() {}
 
 func (skl *SkipList) Get(key []byte) ([]byte, bool) {
-	var (
-		head = skl.head
-		sKey = common.SearchInternalKey(key)
-		prev *node
-	)
-
-	for i := skl.maxLevel - 1; i >= 0; i-- {
-		current := head.next[i]
-		for ; current != nil; current = current.next[i] {
-			cmp := current.key.Compare(sKey)
-			if cmp == 0 {
-				return current.value, true
-			} else if cmp > 0 {
-				break
-			}
-			prev = head
-			head = current
-		}
+	sKey := common.SearchInternalKey(key)
+	prevs := skl.getPreviousNodes(sKey)
+	if len(prevs) == 0 {
+		return nil, false
 	}
-	if bytes.Equal(prev.key.UserKey, key) {
+	prev := prevs[len(prevs)-1]
+	if prev != nil && bytes.Equal(prev.key.UserKey, key) {
 		return prev.value, true
 	}
 	return nil, false
@@ -93,7 +80,7 @@ func (skl *SkipList) getPreviousNodes(key *iKey) []*node {
 	head := skl.head
 	for i := skl.maxLevel - 1; i >= 0; i-- {
 		for current := head.next[i]; current != nil; current = current.next[i] {
-			if cmp := current.key.Compare(key); cmp >= 0 {
+			if cmp := current.key.Compare(key); cmp > 0 {
 				break
 			}
 			head = current

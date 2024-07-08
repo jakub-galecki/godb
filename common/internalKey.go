@@ -16,11 +16,18 @@ type InternalKey struct {
 }
 
 func SearchInternalKey(key []byte) *InternalKey {
-	return &InternalKey{key, math.MaxUint64}
+	return &InternalKey{key, KeyMeta(math.MaxUint64)}
 }
 
 func NewInternalKey(ukey []byte, seqNum uint64, kind uint8) *InternalKey {
-	return nil
+	return &InternalKey{
+		UserKey: ukey,
+		meta:    makeMeta(seqNum, kind),
+	}
+}
+
+func makeMeta(seqNum uint64, kind uint8) KeyMeta {
+	return KeyMeta((seqNum << 8) | uint64(kind))
 }
 
 func (ik *InternalKey) GetMeta() KeyMeta {

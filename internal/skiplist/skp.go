@@ -18,9 +18,10 @@ const (
 type iKey = common.InternalKey
 
 type SkipList struct {
-	maxLevel int
-	height   int
-	head     *node
+	maxLevel  int
+	height    int
+	head      *node
+	totalSize uint64
 }
 
 func NewSkipList() *SkipList {
@@ -86,11 +87,12 @@ func (skp *SkipList) Set(key *iKey, value []byte) error {
 	if dstLvl >= skp.height {
 		skp.height = dstLvl
 	}
+	skp.totalSize += uint64(key.GetSize() + len(value))
 	return nil
 }
 
 func (skp *SkipList) GetSize() uint64 {
-	return 0
+	return skp.totalSize
 }
 
 type iterator struct {

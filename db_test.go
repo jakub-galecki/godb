@@ -11,7 +11,7 @@ import (
 // }
 
 func TestCore(t *testing.T) {
-	lsmt := Open("tt")
+	lsmt := Open("tt0")
 	for i := 0; i < 1000000; i++ {
 		err := lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))
 		assert.NoError(t, err)
@@ -21,6 +21,5 @@ func TestCore(t *testing.T) {
 		assert.True(t, found)
 		assert.Equal(t, []byte(fmt.Sprintf("bar.%d", i)), val)
 	}
-
 	//lsmt.Delete([]byte("foo"))
 }

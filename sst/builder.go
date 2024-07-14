@@ -29,7 +29,7 @@ type builder struct {
 	logger *log.Logger
 }
 
-func NewBuilder(logger *log.Logger, dir string, n int, id string) Builder {
+func NewBuilder(logger *log.Logger, dir string, n uint64, id string) Builder {
 	bdr := &builder{
 		offset: 0,
 		dir:    dir,

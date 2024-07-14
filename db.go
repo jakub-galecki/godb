@@ -296,10 +296,6 @@ func (l *db) new() (err error) {
 	return nil
 }
 
-func (l *db) GetSize() int {
-	return l.mem.GetSize()
-}
-
 func (l *db) Iterator() common.InnerStorageIterator {
 	return l.mem.Iterator()
 }

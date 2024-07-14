@@ -39,10 +39,8 @@ func (m *MemTable) Get(key []byte) ([]byte, bool) {
 	return nil, false
 }
 
-func (m *MemTable) GetSize() int {
-	// return m.storage.GetSize()
-	// todo
-	return 0
+func (m *MemTable) GetSize() uint64 {
+	return m.storage.GetSize()
 }
 
 func (m *MemTable) Delete(key []byte) error {

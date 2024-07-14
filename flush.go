@@ -16,9 +16,9 @@ func (l *db) exceededSize() bool {
 func (l *db) moveToSink() error {
 	l.mutex.Lock()
 	l.sink = append(l.sink, l.mem)
-	seq := l.getNextSeqNum()
-	l.mem = memtable.New(seq)
-	if err := l.rotateWal(seq); err != nil {
+	fnum := l.getNextFileNum()
+	l.mem = memtable.New(fnum)
+	if err := l.rotateWal(fnum); err != nil {
 		return err
 	}
 	l.mutex.Unlock()
@@ -62,10 +62,10 @@ func (l *db) flush(fl *memtable.MemTable) error {
 		return err
 	}
 	l.manifest.addSst(l.l0.id, newSst.GetId())
-	if l.manifest.LastFlushedFileNumber > fl.GetLogSeqNum() {
+	if l.manifest.LastFlushedFileNumber > fl.GetFileNum() {
 		log.Fatalf("last flushed seq num higher than memtable log seq num")
 	}
-	l.manifest.LastFlushedFileNumber = fl.GetLogSeqNum()
+	l.manifest.LastFlushedFileNumber = fl.GetFileNum()
 	// maybe delete older files
 	if err := l.manifest.fsync(); err != nil {
 		return err

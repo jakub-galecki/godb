@@ -190,12 +190,12 @@ func (l *db) recoverWal(wals []wal.WalLogNum) (err error) {
 		return mem, nil
 	}
 	if len(wals) == 0 {
-		seqNum := l.getNextSeqNum()
-		l.wlw, err = l.wl.NewWAL(wal.WalLogNum(seqNum))
+		fnum := l.getNextFileNum()
+		l.wlw, err = l.wl.NewWAL(wal.WalLogNum(fnum))
 		if err != nil {
 			return err
 		}
-		l.mem = memtable.New(seqNum)
+		l.mem = memtable.New(fnum)
 		return nil
 	}
 	if len(wals) == 1 {
@@ -276,7 +276,8 @@ func (l *db) new() (err error) {
 	if err != nil {
 		return err
 	}
-	l.wlw, err = l.wl.NewWAL(wal.WalLogNum(l.manifest.SeqNum))
+	fnum := l.getNextFileNum()
+	l.wlw, err = l.wl.NewWAL(wal.WalLogNum(fnum))
 	if err != nil {
 		return err
 	}
@@ -284,7 +285,7 @@ func (l *db) new() (err error) {
 	if err := common.EnsureDir(sstPath); err != nil {
 		return err
 	}
-	l.mem = memtable.New(l.getNextSeqNum())
+	l.mem = memtable.New(fnum)
 	err = l.manifest.fsync()
 	if err != nil {
 		return err
@@ -312,6 +313,12 @@ func (l *db) Iterator() common.InnerStorageIterator {
 func (l *db) getNextSeqNum() uint64 {
 	res := l.manifest.SeqNum
 	l.manifest.SeqNum++
+	return res
+}
+
+func (l *db) getNextFileNum() uint64 {
+	res := l.manifest.NextFileNumber
+	l.manifest.NextFileNumber++
 	return res
 }
 

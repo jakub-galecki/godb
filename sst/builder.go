@@ -1,11 +1,11 @@
 package sst
 
 import (
-	"encoding/binary"
 	"os"
 	"path"
 	"time"
 
+	"godb/common"
 	"godb/log"
 	"godb/vfs"
 
@@ -13,51 +13,48 @@ import (
 )
 
 type Builder interface {
-	Add([]byte, []byte) Builder
+	Add(*common.InternalKey, []byte) Builder
 	Finish() *SST
 }
 
 type builder struct {
-	currentBlock *block
-	offset       uint64
-	size         uint64
-	dir          string
-	file         vfs.VFS[block]
-	bf           *bloom.BloomFilter
-	index        *indexBuilder // one block should be enough for now but should be changes
-	sstId        string
-	logger       *log.Logger
+	curBB  *blockBuilder
+	offset uint64
+	size   uint64
+	dir    string
+	file   vfs.VFS[block]
+	bf     *bloom.BloomFilter
+	index  *indexBuilder // one block should be enough for now but should be changes
+	sstId  string
+	logger *log.Logger
 }
 
 func NewBuilder(logger *log.Logger, dir string, n int, id string) Builder {
 	bdr := &builder{
-		offset:       0,
-		dir:          dir,
-		file:         vfs.NewVFS[block](dir, id+".db", F_FLAGS, F_PERMISSION),
-		index:        newBuilderIndex(),
-		bf:           bloom.NewWithEstimates(uint(n), 0.01),
-		currentBlock: newBlock(),
-		sstId:        id,
-		logger:       logger,
+		offset: 0,
+		dir:    dir,
+		file:   vfs.NewVFS[block](dir, id+".db", F_FLAGS, F_PERMISSION),
+		index:  newBuilderIndex(),
+		bf:     bloom.NewWithEstimates(uint(n), 0.01),
+		curBB:  newBlockBuilder(),
+		sstId:  id,
+		logger: logger,
 	}
 	return bdr
 }
 
-func (bdr *builder) Add(key, value []byte) Builder {
-	//start := time.Now()
-	entry := newEntry(key, value)
+func (bdr *builder) Add(key *common.InternalKey, value []byte) Builder {
 	// ensure that written block size will not be greater than BLOCK_SIZE
-	if size := entry.getSize() + bdr.currentBlock.getSize(); size > BLOCK_SIZE {
-		// logger.Debug("SST::BUILDER::ADD block size > BLOCK_SIZE %d", size)
-		bdr.flushBlock(bdr.currentBlock)
-		bdr.currentBlock = newBlock()
+	if !bdr.curBB.hasSpace(uint64(key.GetSize())) {
+		b, min := bdr.curBB.finish()
+		bdr.flushBlock(b, min)
+		bdr.curBB = newBlockBuilder()
 	}
-	err := bdr.currentBlock.add(entry)
+	err := bdr.curBB.add(key, value)
 	if err != nil {
 		panic(err)
 	}
-	bdr.bf.Add(key)
-	//bdr.logger.Event("sstBuilder.Add", start)
+	bdr.bf.Add(key.UserKey)
 	return bdr
 }
 
@@ -66,9 +63,12 @@ func (bdr *builder) Finish() *SST {
 		meta  = tableMeta{}
 		start = time.Now()
 	)
-	if bdr.currentBlock.getSize() > 0 {
-		bdr.flushBlock(bdr.currentBlock)
+
+	if bdr.curBB.cur.getSize() > 0 {
+		b, min := bdr.curBB.finish()
+		bdr.flushBlock(b, min)
 	}
+
 	// data info
 	meta.dataOffset = 0
 	meta.dataSize = bdr.size
@@ -123,19 +123,15 @@ func (bdr *builder) Finish() *SST {
 	}
 }
 
-func (bdr *builder) addIndex(min []byte) {
-	offset := make([]byte, 8)
-	binary.BigEndian.PutUint64(offset, bdr.offset)
-	if err := bdr.index.add(&entry{key: min, value: offset}); err != nil {
+func (bdr *builder) addIndex(minKey []byte) {
+	if err := bdr.index.add(minKey, bdr.offset); err != nil {
 		panic(err)
 	}
 }
 
-func (bdr *builder) flushBlock(b *block) {
+func (bdr *builder) flushBlock(b *block, minKey []byte) {
 	n, err := bdr.file.Write(b.buf.Bytes())
-
-	bdr.addIndex(b.min)
-
+	bdr.addIndex(minKey)
 	bdr.offset += uint64(n)
 	bdr.size += uint64(n)
 	if err != nil {

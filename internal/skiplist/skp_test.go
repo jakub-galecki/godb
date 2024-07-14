@@ -2,106 +2,75 @@ package skiplist
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"godb/common"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBasic(t *testing.T) {
-	skl := New(16)
-	for i := 0; i < 1; i++ {
-		skl.Set(createIKey(fmt.Sprintf("foo.%d", i), uint64(i), common.SET), []byte(fmt.Sprintf("bar.%d", i)))
+func Test_Basic(t *testing.T) {
+	skl := NewSkipList()
+	for i := 0; i < 10000; i++ {
+		rawk := []byte(fmt.Sprintf("foo.%d", i))
+		rawv := []byte(fmt.Sprintf("bar.%d", i))
+		assert.NoError(t, skl.Set(common.NewInternalKey(rawk, uint64(i), common.SET), rawv))
 	}
 
-	for i := 0; i < 1; i++ {
-		v, f := skl.Get([]byte(fmt.Sprintf("foo.%d", i)))
+	for i := 0; i < 10000; i++ {
+		rawk := []byte(fmt.Sprintf("foo.%d", i))
+		rawv := []byte(fmt.Sprintf("bar.%d", i))
+		v, f := skl.Get(rawk)
 		assert.True(t, f)
-		assert.Equal(t, v, []byte(fmt.Sprintf("bar.%d", i)))
+		assert.Equal(t, v, rawv)
 	}
+	assert.True(t, true)
 }
 
-// func TestUpdate(t *testing.T) {
-// 	skl := New(16)
-
-// 	skl.Set([]byte("foo.1"), []byte("bar.1"))
-// 	v, f := skl.Get([]byte("foo.1"))
-// 	assert.True(t, f)
-// 	assert.Equal(t, v, []byte("bar.1"))
-
-// 	skl.Set([]byte("foo.1"), []byte("bar.22"))
-// 	v, f = skl.Get([]byte("foo.1"))
-// 	assert.True(t, f)
-// 	assert.Equal(t, v, []byte("bar.22"))
-
-// }
-
-func TestIter(t *testing.T) {
-	skl := New(16)
-	for i := 1; i < 100; i++ {
-		skl.Set(createIKey(fmt.Sprintf("foo.%d", i), uint64(i), common.SET), []byte(fmt.Sprintf("bar.%d", i)))
-	}
-
-	i := 1
-	j := -1
-	it := skl.NewIterator()
-	for it.Next() {
-		if j == -1 {
-			k := []byte(fmt.Sprintf("foo.%d", i))
-			v := []byte(fmt.Sprintf("bar.%d", i))
-
-			assert.Equal(t, k, it.Key())
-			assert.Equal(t, v, it.Value())
-
-			j++
-			continue
-		}
-
-		k := []byte(fmt.Sprintf("foo.%d%d", i, j))
-		v := []byte(fmt.Sprintf("bar.%d%d", i, j))
-
-		assert.Equal(t, k, it.Key())
-		assert.Equal(t, v, it.Value())
-
-		if j == 9 {
-			j = -1
-			i++
-		} else {
-			j++
-		}
-	}
+func Test_TheSameKey(t *testing.T) {
+	skl := NewSkipList()
+	require.NoError(t, skl.Set(common.NewInternalKey([]byte("foo.1"), 0, common.SET), []byte("bar.1")))
+	require.Error(t, skl.Set(common.NewInternalKey([]byte("foo.1"), 0, common.SET), []byte("bar.1")))
 }
 
-func BenchmarkBasicSet(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		skl := New(16)
-
-		for i := 0; i < 100000; i++ {
-			skl.Set(createIKey(fmt.Sprintf("foo.%d", i), uint64(i), common.SET), []byte(fmt.Sprintf("bar.%d", i)))
-		}
-	}
+func Test_VersioningKey(t *testing.T) {
+	skl := NewSkipList()
+	require.NoError(t, skl.Set(common.NewInternalKey([]byte("foo.1"), 0, common.SET), []byte("bar.1")))
+	require.NoError(t, skl.Set(common.NewInternalKey([]byte("foo.1"), 1, common.SET), []byte("bar.2")))
+	require.NoError(t, skl.Set(common.NewInternalKey([]byte("foo.1"), 2, common.SET), []byte("bar.3")))
+	v, f := skl.Get([]byte("foo.1"))
+	assert.True(t, f)
+	assert.Equal(t, v, []byte("bar.3"))
 }
 
-func BenchmarkBasicGet(b *testing.B) {
-	skl := New(16)
+func Test_Iterator(t *testing.T) {
+	skl := NewSkipList()
+	require.NoError(t, skl.Set(common.NewInternalKey([]byte("foo.1"), 0, common.SET), []byte("bar.1")))
+	require.NoError(t, skl.Set(common.NewInternalKey([]byte("foo.1"), 1, common.SET), []byte("bar.2")))
+	require.NoError(t, skl.Set(common.NewInternalKey([]byte("foo.1"), 2, common.SET), []byte("bar.3")))
 
-	t1 := time.Now()
-	for i := 0; i < 100000; i++ {
-		skl.Set(createIKey(fmt.Sprintf("foo.%d", i), uint64(i), common.SET), []byte(fmt.Sprintf("bar.%d", i)))
-	}
+	it := skl.NewIter()
+	assert.NotNil(t, it)
 
-	fmt.Printf("Set took: %v\n", time.Since(t1))
+	var (
+		key *iKey
+		val []byte
+	)
 
-	t2 := time.Now()
-	for i := 0; i < b.N; i++ {
-		for i := 0; i < 100000; i++ {
-			_, _ = skl.Get([]byte(fmt.Sprintf("foo.%d", i)))
-		}
-	}
-	fmt.Printf("Get took: %v\n", time.Since(t2))
-}
+	require.True(t, it.HasNext())
+	key, val = it.Next()
+	require.Equal(t, common.NewInternalKey([]byte("foo.1"), 2, common.SET), key)
+	assert.Equal(t, []byte("bar.3"), val)
 
-func createIKey(raw string, seq uint64, kind uint8) *iKey {
-	return common.NewInternalKey([]byte(raw), seq, kind)
+	require.True(t, it.HasNext())
+	key, val = it.Next()
+	require.Equal(t, common.NewInternalKey([]byte("foo.1"), 1, common.SET), key)
+	assert.Equal(t, []byte("bar.2"), val)
+
+	require.True(t, it.HasNext())
+	key, val = it.Next()
+	require.Equal(t, common.NewInternalKey([]byte("foo.1"), 0, common.SET), key)
+	assert.Equal(t, []byte("bar.1"), val)
+
+	require.False(t, it.HasNext())
 }

@@ -5,6 +5,7 @@ package common
 import (
 	"bytes"
 	"cmp"
+	"encoding/binary"
 	"math"
 )
 
@@ -12,7 +13,7 @@ type KeyMeta uint64
 
 type InternalKey struct {
 	UserKey []byte
-	meta    KeyMeta
+	Meta    KeyMeta
 }
 
 func SearchInternalKey(key []byte) *InternalKey {
@@ -22,7 +23,7 @@ func SearchInternalKey(key []byte) *InternalKey {
 func NewInternalKey(ukey []byte, seqNum uint64, kind uint8) *InternalKey {
 	return &InternalKey{
 		UserKey: ukey,
-		meta:    makeMeta(seqNum, kind),
+		Meta:    makeMeta(seqNum, kind),
 	}
 }
 
@@ -31,14 +32,20 @@ func makeMeta(seqNum uint64, kind uint8) KeyMeta {
 }
 
 func (ik *InternalKey) GetMeta() KeyMeta {
-	return ik.meta
+	return ik.Meta
 }
 
 func (ik *InternalKey) Serialize() []byte {
-	return nil
+	buf := make([]byte, len(ik.UserKey)+64)
+	n := copy(buf, ik.UserKey)
+	binary.BigEndian.PutUint64(buf[n:], uint64(ik.Meta))
+	return buf
 }
 
 func (ik *InternalKey) Compare(other *InternalKey) int {
+	if ik == nil {
+		return -1
+	}
 	ukeyCmp := bytes.Compare(ik.UserKey, other.UserKey)
 	if ukeyCmp != 0 {
 		return ukeyCmp
@@ -51,9 +58,13 @@ func (ik *InternalKey) Compare(other *InternalKey) int {
 	   b = InternalKey{UserKey: "abc", meta: 501}
 	   a < b
 	*/
-	return cmp.Compare(ik.meta, other.meta)
+	return cmp.Compare(other.Meta, ik.Meta)
+}
+
+func (ik *InternalKey) Equal(other *InternalKey) bool {
+	return ik.Compare(other) == 0
 }
 
 func (ik *InternalKey) GetSize() int {
-	return len(ik.UserKey) + 8
+	return len(ik.UserKey) + 64
 }

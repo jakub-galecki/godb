@@ -26,10 +26,8 @@ type Manifest struct {
 	BlockSize  int
 	LevelCount int
 	MaxLevels  int
-
 	// seqNum is a global counter for memtable writes to distinguish between new and old entries.
 	SeqNum uint64
-
 	// nextFileNumber indicates next file number that will be assigned to wal and memtable.
 	NextFileNumber        uint64
 	LastFlushedFileNumber uint64

@@ -21,7 +21,9 @@ func newBuilderIndex() *indexBuilder {
 	}
 }
 
-func (i *indexBuilder) add(e *entry) error {
+func (i *indexBuilder) add(key []byte, off uint64) error {
+	e := &entry{key: key, value: make([]byte, 8)}
+	binary.BigEndian.PutUint64(e.value, off)
 	n, err := encode(e, i.buf)
 	if err != nil {
 		return err

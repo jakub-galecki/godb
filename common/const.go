@@ -5,9 +5,10 @@ import "errors"
 var TOMBSTONE []byte
 
 var (
-	EndOfIterator = errors.New("out of records")
-	KeyNotFound   = errors.New("key not found")
-	ErrPathFile   = errors.New("provied path points to a file instead of directory")
+	EndOfIterator       = errors.New("out of records")
+	KeyNotFound         = errors.New("key not found")
+	ErrPathFile         = errors.New("provied path points to a file instead of directory")
+	ErrKeyAlreadyExists = errors.New("key already exists")
 )
 
 const (
@@ -20,8 +21,10 @@ const (
 	MANIFEST = "MANIFEST"
 )
 
+type DbOp = uint8
+
 const (
-	SET uint8 = iota
+	SET DbOp = iota
 	GET
 	DELETE
 )

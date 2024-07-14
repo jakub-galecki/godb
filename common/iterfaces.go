@@ -2,11 +2,12 @@ package common
 
 type InnerStorage interface {
 	Set(uKey *InternalKey, value []byte) error
-	Get(key []byte) ([]byte, error)
+	Get(key []byte) ([]byte, bool)
 	GetSize() uint64
-	Delete(key *InternalKey) bool
 	NewIter() InnerStorageIterator
 }
 
 type InnerStorageIterator interface {
+	HasNext() bool
+	Next() (*InternalKey, []byte)
 }

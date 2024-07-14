@@ -1,16 +1,19 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"godb/common"
+)
 
 type actions []*action
 
 type action struct {
-	kind  int
+	kind  common.DbOp
 	key   []byte
 	value []byte
 }
 
-func newAction(key, value []byte, kind int) action {
+func newAction(key, value []byte, kind common.DbOp) action {
 	return action{
 		kind:  kind,
 		key:   key,

@@ -142,7 +142,7 @@ func (l *db) recover() (err error) {
 	var toDel []string
 	i := 0
 	for j := 0; j < len(walss); j++ {
-		if uint64(walss[j]) <= l.manifest.LastFlushedSeqNum {
+		if uint64(walss[j]) <= l.manifest.LastFlushedFileNumber {
 			toDel = append(toDel, path.Join(l.opts.path, common.WAL, walss[j].FileName())) // SST
 			i++
 		}

@@ -1,7 +1,6 @@
 package memtable
 
 import (
-	"errors"
 	"godb/common"
 	"godb/internal/skiplist"
 )
@@ -23,21 +22,21 @@ type MemTable struct {
 // storageCore common.StorageCore
 func New(fileNum uint64) *MemTable {
 	var stc MemTable
-	stc.storage = skiplist.New()
+	stc.storage = skiplist.NewSkipList()
 	stc.fileNum = fileNum
 	return &stc
 }
 
 func (m *MemTable) Set(key, value []byte) {
-	m.storage.Set(common.InternalKey{UserKey: key}, value)
+	m.storage.Set(&common.InternalKey{UserKey: key}, value)
 }
 
-func (m *MemTable) Get(key []byte) ([]byte, error) {
+func (m *MemTable) Get(key []byte) ([]byte, bool) {
 	val, found := m.storage.Get(key)
 	if val != nil {
 		return val, found
 	}
-	return nil, errors.New("not found")
+	return nil, false
 }
 
 func (m *MemTable) GetSize() int {
@@ -46,8 +45,8 @@ func (m *MemTable) GetSize() int {
 	return 0
 }
 
-func (m *MemTable) Delete(key []byte) bool {
-	return m.storage.Delete(common.InternalKey{UserKey: key})
+func (m *MemTable) Delete(key []byte) error {
+	return m.storage.Set(&common.InternalKey{UserKey: key}, common.TOMBSTONE)
 }
 
 func (m *MemTable) Iterator() common.InnerStorageIterator {

@@ -95,6 +95,6 @@ func (e *entry) decode(r io.Reader) (int, error) {
 	return total, nil
 }
 
-func (e *entry) getSize() int {
-	return len(e.key) + len(e.value) + 16
+func (e *entry) getSize() uint64 {
+	return uint64(len(e.key) + len(e.value) + 16)
 }

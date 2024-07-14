@@ -117,16 +117,22 @@ func (z *Manifest) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "MaxLevels")
 				return
 			}
-		case "LastFlushedSeqNum":
-			z.LastFlushedSeqNum, err = dc.ReadUint64()
-			if err != nil {
-				err = msgp.WrapError(err, "LastFlushedSeqNum")
-				return
-			}
 		case "SeqNum":
 			z.SeqNum, err = dc.ReadUint64()
 			if err != nil {
 				err = msgp.WrapError(err, "SeqNum")
+				return
+			}
+		case "NextFileNumber":
+			z.NextFileNumber, err = dc.ReadUint64()
+			if err != nil {
+				err = msgp.WrapError(err, "NextFileNumber")
+				return
+			}
+		case "LastFlushedFileNumber":
+			z.LastFlushedFileNumber, err = dc.ReadUint64()
+			if err != nil {
+				err = msgp.WrapError(err, "LastFlushedFileNumber")
 				return
 			}
 		default:
@@ -142,9 +148,9 @@ func (z *Manifest) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *Manifest) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 11
+	// map header, size 12
 	// write "Id"
-	err = en.Append(0x8b, 0xa2, 0x49, 0x64)
+	err = en.Append(0x8c, 0xa2, 0x49, 0x64)
 	if err != nil {
 		return
 	}
@@ -254,16 +260,6 @@ func (z *Manifest) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "MaxLevels")
 		return
 	}
-	// write "LastFlushedSeqNum"
-	err = en.Append(0xb1, 0x4c, 0x61, 0x73, 0x74, 0x46, 0x6c, 0x75, 0x73, 0x68, 0x65, 0x64, 0x53, 0x65, 0x71, 0x4e, 0x75, 0x6d)
-	if err != nil {
-		return
-	}
-	err = en.WriteUint64(z.LastFlushedSeqNum)
-	if err != nil {
-		err = msgp.WrapError(err, "LastFlushedSeqNum")
-		return
-	}
 	// write "SeqNum"
 	err = en.Append(0xa6, 0x53, 0x65, 0x71, 0x4e, 0x75, 0x6d)
 	if err != nil {
@@ -274,15 +270,35 @@ func (z *Manifest) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "SeqNum")
 		return
 	}
+	// write "NextFileNumber"
+	err = en.Append(0xae, 0x4e, 0x65, 0x78, 0x74, 0x46, 0x69, 0x6c, 0x65, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint64(z.NextFileNumber)
+	if err != nil {
+		err = msgp.WrapError(err, "NextFileNumber")
+		return
+	}
+	// write "LastFlushedFileNumber"
+	err = en.Append(0xb5, 0x4c, 0x61, 0x73, 0x74, 0x46, 0x6c, 0x75, 0x73, 0x68, 0x65, 0x64, 0x46, 0x69, 0x6c, 0x65, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72)
+	if err != nil {
+		return
+	}
+	err = en.WriteUint64(z.LastFlushedFileNumber)
+	if err != nil {
+		err = msgp.WrapError(err, "LastFlushedFileNumber")
+		return
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *Manifest) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 11
+	// map header, size 12
 	// string "Id"
-	o = append(o, 0x8b, 0xa2, 0x49, 0x64)
+	o = append(o, 0x8c, 0xa2, 0x49, 0x64)
 	o = msgp.AppendString(o, z.Id)
 	// string "L0"
 	o = append(o, 0xa2, 0x4c, 0x30)
@@ -317,12 +333,15 @@ func (z *Manifest) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "MaxLevels"
 	o = append(o, 0xa9, 0x4d, 0x61, 0x78, 0x4c, 0x65, 0x76, 0x65, 0x6c, 0x73)
 	o = msgp.AppendInt(o, z.MaxLevels)
-	// string "LastFlushedSeqNum"
-	o = append(o, 0xb1, 0x4c, 0x61, 0x73, 0x74, 0x46, 0x6c, 0x75, 0x73, 0x68, 0x65, 0x64, 0x53, 0x65, 0x71, 0x4e, 0x75, 0x6d)
-	o = msgp.AppendUint64(o, z.LastFlushedSeqNum)
 	// string "SeqNum"
 	o = append(o, 0xa6, 0x53, 0x65, 0x71, 0x4e, 0x75, 0x6d)
 	o = msgp.AppendUint64(o, z.SeqNum)
+	// string "NextFileNumber"
+	o = append(o, 0xae, 0x4e, 0x65, 0x78, 0x74, 0x46, 0x69, 0x6c, 0x65, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72)
+	o = msgp.AppendUint64(o, z.NextFileNumber)
+	// string "LastFlushedFileNumber"
+	o = append(o, 0xb5, 0x4c, 0x61, 0x73, 0x74, 0x46, 0x6c, 0x75, 0x73, 0x68, 0x65, 0x64, 0x46, 0x69, 0x6c, 0x65, 0x4e, 0x75, 0x6d, 0x62, 0x65, 0x72)
+	o = msgp.AppendUint64(o, z.LastFlushedFileNumber)
 	return
 }
 
@@ -437,16 +456,22 @@ func (z *Manifest) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "MaxLevels")
 				return
 			}
-		case "LastFlushedSeqNum":
-			z.LastFlushedSeqNum, bts, err = msgp.ReadUint64Bytes(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "LastFlushedSeqNum")
-				return
-			}
 		case "SeqNum":
 			z.SeqNum, bts, err = msgp.ReadUint64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "SeqNum")
+				return
+			}
+		case "NextFileNumber":
+			z.NextFileNumber, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "NextFileNumber")
+				return
+			}
+		case "LastFlushedFileNumber":
+			z.LastFlushedFileNumber, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "LastFlushedFileNumber")
 				return
 			}
 		default:
@@ -474,6 +499,6 @@ func (z *Manifest) Msgsize() (s int) {
 			s += msgp.StringPrefixSize + len(z.Levels[za0002][za0003])
 		}
 	}
-	s += 6 + msgp.StringPrefixSize + len(z.Table) + 10 + msgp.Int64Size + 5 + msgp.StringPrefixSize + len(z.Path) + 10 + msgp.IntSize + 11 + msgp.IntSize + 10 + msgp.IntSize + 18 + msgp.Uint64Size + 7 + msgp.Uint64Size
+	s += 6 + msgp.StringPrefixSize + len(z.Table) + 10 + msgp.Int64Size + 5 + msgp.StringPrefixSize + len(z.Path) + 10 + msgp.IntSize + 11 + msgp.IntSize + 10 + msgp.IntSize + 7 + msgp.Uint64Size + 15 + msgp.Uint64Size + 22 + msgp.Uint64Size
 	return
 }

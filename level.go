@@ -4,6 +4,7 @@ import (
 	"errors"
 	"godb/common"
 	"godb/internal/cache"
+	"godb/log"
 	"godb/memtable"
 	"godb/sst"
 	"path"
@@ -17,28 +18,31 @@ type level struct {
 	blockCache *cache.Cache[[]byte]
 	dir        string
 	curId      int
+	logger     *log.Logger
 }
 
-func newLevel(id int, dir string, cache *cache.Cache[[]byte]) *level {
+func newLevel(id int, dir string, cache *cache.Cache[[]byte], logger *log.Logger) *level {
 	lvl := level{
 		id:         id,
 		blockCache: cache,
 		dir:        dir,
 		curId:      0,
+		logger:     logger,
 	}
 	return &lvl
 }
 
 func (l *level) Get(key []byte) ([]byte, bool) {
 	for _, tbl := range l.ssts {
-		if value, err := tbl.Get(key); err == nil {
-			return value, true
-		} else {
-			if errors.Is(err, sst.NOT_FOUND_IN_BLOOM) {
+		val, err := tbl.Get(key)
+		if err != nil {
+			if errors.Is(err, sst.ErrNotFoundInBloom) {
 				continue
 			}
-			// trace.Error().Str("sstId", tbl.GetId()).Err(err).Msg("error while getting data from sst")
+			l.logger.Error().Str("sstId", tbl.GetId()).Err(err).Msg("error while getting data from sst")
+			return nil, false
 		}
+		return val, true
 	}
 	return nil, false
 }
@@ -70,7 +74,7 @@ func (l *level) loadSSTs(ssts []string) error {
 
 	for _, ssId := range ssts {
 		p := getFile(ssId)
-		ss, err := sst.Open(p, ssId)
+		ss, err := sst.Open(p, ssId, l.logger)
 		if err != nil {
 			return err
 		}

@@ -12,5 +12,5 @@ const (
 )
 
 var (
-	NOT_FOUND_IN_BLOOM = errors.New("key not found in bloom filter")
+	ErrNotFoundInBloom = errors.New("key not found in bloom filter")
 )

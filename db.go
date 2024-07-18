@@ -232,7 +232,7 @@ func (l *db) loadLevels() (err error) {
 		return errors.New("Manifest not loaded")
 	}
 	if l.l0 == nil {
-		l.l0 = newLevel(0, l.getSstPath(), l.blockCache)
+		l.l0 = newLevel(0, l.getSstPath(), l.blockCache, l.logger)
 	}
 	err = l.l0.loadSSTs(l.manifest.L0)
 	if err != nil {
@@ -244,7 +244,7 @@ func (l *db) loadLevels() (err error) {
 		l.levels = make([]*level, l.manifest.LevelCount-1) // -1 because L0 is stored in separated field
 		for i, ssts := range l.manifest.Levels {
 			if l.levels[i] == nil {
-				l.levels[i] = newLevel(i, l.getSstPath(), l.blockCache)
+				l.levels[i] = newLevel(i, l.getSstPath(), l.blockCache, l.logger)
 			}
 			err = l.levels[i].loadSSTs(ssts)
 			if err != nil {
@@ -291,7 +291,7 @@ func (l *db) new() (err error) {
 		return err
 	}
 	// for now use global cache, maybe change so l0 has its own block cache
-	l.l0 = newLevel(0, sstPath, l.blockCache)
+	l.l0 = newLevel(0, sstPath, l.blockCache, l.logger)
 	l.levels = make([]*level, 0)
 	return nil
 }

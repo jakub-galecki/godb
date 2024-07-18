@@ -11,6 +11,8 @@ import (
 
 type KeyMeta uint64
 
+const MetaLen = 8
+
 type InternalKey struct {
 	UserKey []byte
 	Meta    KeyMeta
@@ -36,10 +38,22 @@ func (ik *InternalKey) GetMeta() KeyMeta {
 }
 
 func (ik *InternalKey) Serialize() []byte {
-	buf := make([]byte, len(ik.UserKey)+64)
+	buf := make([]byte, len(ik.UserKey)+MetaLen)
 	n := copy(buf, ik.UserKey)
 	binary.BigEndian.PutUint64(buf[n:], uint64(ik.Meta))
 	return buf
+}
+
+func DeserializeKey(key []byte) *InternalKey {
+	i := len(key) - MetaLen
+	if i <= 0 {
+		return nil
+	}
+	return &InternalKey{
+		UserKey: key[:i:i],
+		Meta:    KeyMeta(binary.BigEndian.Uint64(key[i:])),
+	}
+
 }
 
 func (ik *InternalKey) Compare(other *InternalKey) int {
@@ -65,6 +79,13 @@ func (ik *InternalKey) Equal(other *InternalKey) bool {
 	return ik.Compare(other) == 0
 }
 
+func (ik *InternalKey) SoftCompare(other *InternalKey) int {
+	return bytes.Compare(ik.UserKey, other.UserKey)
+}
+
+func (ik *InternalKey) SoftEqual(other *InternalKey) bool {
+	return bytes.Equal(ik.UserKey, other.UserKey)
+}
 func (ik *InternalKey) GetSize() int {
 	return len(ik.UserKey) + 64
 }

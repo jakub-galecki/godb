@@ -6,6 +6,7 @@ import (
 	"github.com/bits-and-blooms/bloom/v3"
 
 	"godb/internal/cache"
+	"godb/log"
 )
 
 type SST struct {
@@ -16,6 +17,8 @@ type SST struct {
 
 	meta       tableMeta
 	blockCache *cache.Cache[[]byte]
+
+	logger *log.Logger
 }
 
 func (s *SST) GetTableMeta() tableMeta {

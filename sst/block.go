@@ -2,7 +2,10 @@ package sst
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"godb/common"
+	"io"
 )
 
 const (
@@ -25,16 +28,34 @@ func newBlock() *block {
 
 func (b *block) get(key []byte) ([]byte, error) {
 	// maybe: implement block offests and binary search
-	e := entry{}
-	read := 0
-	for n, err := decode(b.buf, &e); err == nil; n, err = decode(b.buf, &e) {
-		if bytes.Equal(e.key, key) {
-			return e.value, nil
+	var (
+		e       = entry{}
+		skey    = common.SearchInternalKey(key)
+		read    = 0
+		decoded *common.InternalKey
+	)
+	for {
+		n, err := decode(b.buf, &e)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, err
+		}
+		decoded = common.DeserializeKey(e.key)
+		if decoded == nil {
+			return nil, common.ErrKeyNotFound
+		}
+		if skey.Compare(decoded) < 0 {
+			continue
 		}
 		read += n
 		if read >= BLOCK_SIZE {
 			break
 		}
+	}
+	if decoded.SoftEqual(skey) {
+		return e.value, nil
 	}
 	return nil, fmt.Errorf("key not found")
 }

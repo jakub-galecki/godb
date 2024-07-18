@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"godb/log"
 	"io"
 	"os"
 	"strconv"
@@ -11,7 +12,7 @@ import (
 	"github.com/bits-and-blooms/bloom/v3"
 )
 
-func Open(path, sstId string) (*SST, error) {
+func Open(path, sstId string, logger *log.Logger) (*SST, error) {
 	f, err := os.OpenFile(fmt.Sprintf("%s.db", path), os.O_RDONLY, F_PERMISSION)
 	if err != nil {
 		return nil, err
@@ -37,14 +38,14 @@ func Open(path, sstId string) (*SST, error) {
 		return nil, err
 	}
 
-	// trace.Debug().
-	// 	Uint64("data_offset", tm.dataOffset).
-	// 	Uint64("data_size", tm.dataSize).
-	// 	Uint64("bloom_filter_offset", tm.bfOffset).
-	// 	Uint64("bloom_filter_size", tm.bfSize).
-	// 	Uint64("index_offset", tm.indexOffset).
-	// 	Uint64("index_size", tm.indexSize).
-	// 	Msg("sst metada")
+	logger.Debug().
+		Uint64("data_offset", tm.dataOffset).
+		Uint64("data_size", tm.dataSize).
+		Uint64("bloom_filter_offset", tm.bfOffset).
+		Uint64("bloom_filter_size", tm.bfSize).
+		Uint64("index_offset", tm.indexOffset).
+		Uint64("index_size", tm.indexSize).
+		Msg("sst metada")
 
 	bfBytes := make([]byte, tm.bfSize)
 	_, err = f.ReadAt(bfBytes, int64(tm.bfOffset))
@@ -65,11 +66,12 @@ func Open(path, sstId string) (*SST, error) {
 	}
 
 	return &SST{
-		sstId: sstId,
-		meta:  tm,
-		bf:    bf,
-		idx:   indexFromBuf(bytes.NewBuffer(idxBlock)),
-		fref:  f,
+		sstId:  sstId,
+		meta:   tm,
+		bf:     bf,
+		idx:    indexFromBuf(bytes.NewBuffer(idxBlock)),
+		fref:   f,
+		logger: logger,
 	}, nil
 }
 
@@ -79,54 +81,43 @@ func (s *SST) Contains(k []byte) bool {
 
 func (s *SST) Get(k []byte) ([]byte, error) {
 	if !s.bf.Test(k) {
-		return nil, NOT_FOUND_IN_BLOOM
+		return nil, ErrNotFoundInBloom
 	}
-
-	// trace.Debug().Str("key", string(k)).
-	// 	Msg("Reading from the sst file")
-
 	genCacheKey := func(idx string, off uint64) string {
 		return idx + strconv.FormatUint(off, 10)
 	}
-
 	getFromBlock := func(raw, key []byte) ([]byte, error) {
 		return (&block{buf: bytes.NewBuffer(raw)}).get(key)
 	}
-
 	// todo: reformat
 	idxEntry, err := s.idx.find(k)
 	if err != nil {
 		return nil, err
 	}
-
-	// logger.Debugf("offset %d", idxEntry.foffset)
+	s.logger.Debug().Str("file", s.fref.Name()).Uint64("offset", idxEntry.foffset).Send()
 	if idxEntry.foffset > s.meta.dataSize {
 		return nil, fmt.Errorf("index out of bound")
 	}
-
 	ck := genCacheKey(s.sstId, idxEntry.foffset)
-
 	if s.blockCache != nil {
 		if cEntry, err := s.blockCache.Get(ck); err == nil {
-			// trace.Debug().
-			// 	Str("block_entry_id", ck).
-			// 	Msg("got block from cache")
+			s.logger.Debug().
+				Str("block_entry_id", ck).
+				Msg("got block from cache")
 
 			return getFromBlock(cEntry, k)
 		}
 	}
-
 	rawBlock := make([]byte, BLOCK_SIZE)
 	if _, err := s.fref.ReadAt(rawBlock, int64(idxEntry.foffset)); err != nil && !errors.Is(err, io.EOF) {
+		s.logger.Error().Err(err).Msg("error while reading block from sst file")
 		return nil, err
 	}
-
 	if s.blockCache != nil {
 		err = s.blockCache.Set(ck, rawBlock)
 		if err != nil {
-			// trace.Error().Err(err).Msg("error while caching block")
+			s.logger.Error().Err(err).Msg("error while caching block")
 		}
 	}
-
 	return getFromBlock(rawBlock, k)
 }

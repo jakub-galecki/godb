@@ -23,7 +23,7 @@ func TestBuilder(t *testing.T) {
 	assert.NoError(t, err)
 	//logger.Debugf("%s  -> %v", ss.GetTable(), ss.GetTableMeta())
 
-	fsst, err := Open(fmt.Sprintf("%s\\%s\\0.db", os.TempDir(), "ttt"), "0.0")
+	fsst, err := Open(fmt.Sprintf("%s\\%s\\0.db", os.TempDir(), "ttt"), "0.0", logger)
 	assert.NoError(t, err)
 
 	for i := 0; i < 1000; i++ {

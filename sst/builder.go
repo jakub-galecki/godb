@@ -81,7 +81,6 @@ func (bdr *builder) Finish() *SST {
 
 	// meta
 	meta.bfOffset = bdr.offset
-	meta.bfSize = uint64(bfSize)
 	bdr.offset += uint64(bfSize)
 
 	// index
@@ -115,11 +114,12 @@ func (bdr *builder) Finish() *SST {
 	}
 	bdr.logger.Event("sstBuilder.Finish", start)
 	return &SST{
-		meta:  meta,
-		bf:    bdr.bf,
-		idx:   indexFromBuf(bdr.index.buf),
-		fref:  fref,
-		sstId: bdr.sstId,
+		meta:   meta,
+		bf:     bdr.bf,
+		idx:    indexFromBuf(bdr.index.buf),
+		fref:   fref,
+		sstId:  bdr.sstId,
+		logger: bdr.logger,
 	}
 }
 

@@ -86,6 +86,7 @@ func (bdr *builder) Finish() *SST {
 
 	// meta
 	meta.bfOffset = bdr.offset
+	meta.bfSize = uint64(bfSize)
 	bdr.offset += uint64(bfSize)
 
 	// index

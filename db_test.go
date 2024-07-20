@@ -11,7 +11,7 @@ import (
 // }
 
 func TestCore(t *testing.T) {
-	lsmt := Open("tt5")
+	lsmt := Open("tt8")
 	// for i := 0; i < 1000000; i++ {
 	// 	err := lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))
 	// 	require.NoError(t, err)

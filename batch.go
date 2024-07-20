@@ -15,7 +15,6 @@ type Batch struct {
 
 	forceFlush bool
 	wg         *sync.WaitGroup
-	// db *db
 }
 
 func newBatch(acs ...*action) *Batch {

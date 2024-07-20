@@ -6,7 +6,6 @@ import (
 	"sync/atomic"
 )
 
-
 var batchPool = sync.Pool{New: func() interface{} { return new(Batch) }}
 
 type Batch struct {

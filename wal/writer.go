@@ -18,6 +18,7 @@ type writer struct {
 	lsn        int
 	buf        *bufio.Writer
 	syncTicker *time.Ticker
+	exitChan   chan struct{}
 }
 
 type Writer interface {
@@ -30,11 +31,12 @@ func newWriter(f *os.File, o *Opts) (*writer, error) {
 		file:       f,
 		syncTicker: time.NewTicker(o.SyncInterval),
 		o:          o,
+		exitChan:   make(chan struct{}),
 	}
 
 	w.buf = bufio.NewWriter(f)
 
-	go w.runSyncWorker()
+	go w.runSyncWorker(w.exitChan)
 	return w, nil
 }
 
@@ -45,11 +47,17 @@ func (w *writer) internalEncode(b []byte) []byte {
 	return data
 }
 
-func (w *writer) runSyncWorker() {
-	for range w.syncTicker.C {
-		w.mu.Lock()
-		w.sync()
-		w.mu.Unlock()
+func (w *writer) runSyncWorker(exitChan <-chan struct{}) {
+	for {
+
+		select {
+		case <-w.syncTicker.C:
+			w.mu.Lock()
+			w.sync()
+			w.mu.Unlock()
+		case <-exitChan:
+			return
+		}
 	}
 }
 
@@ -72,6 +80,8 @@ func (w *writer) Write(data []byte) error {
 }
 
 func (w *writer) Close() error {
+	w.exitChan <- struct{}{}
+
 	w.mu.Lock()
 	defer w.mu.Unlock()
 

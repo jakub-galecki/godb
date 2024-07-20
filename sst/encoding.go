@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"godb/common"
 	"io"
 )
 
@@ -16,8 +17,9 @@ func decode(r io.Reader, e *entry) (int, error) {
 }
 
 type entry struct {
-	key   []byte
-	value []byte
+	rawKey *common.InternalKey
+	key    []byte
+	value  []byte
 }
 
 func newEntry(key, value []byte) *entry {

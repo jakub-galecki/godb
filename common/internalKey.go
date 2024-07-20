@@ -87,5 +87,5 @@ func (ik *InternalKey) SoftEqual(other *InternalKey) bool {
 	return bytes.Equal(ik.UserKey, other.UserKey)
 }
 func (ik *InternalKey) GetSize() int {
-	return len(ik.UserKey) + 64
+	return len(ik.UserKey) + MetaLen
 }

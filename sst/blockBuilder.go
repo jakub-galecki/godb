@@ -2,8 +2,10 @@ package sst
 
 import (
 	"bytes"
-	"godb/common"
+	"errors"
 )
+
+var errNoSpaceInBlock = errors.New("no space in current block")
 
 type blockBuilder struct {
 	cur *block
@@ -37,19 +39,30 @@ func (b *blockBuilder) updateMin(key []byte) {
 	b.min = min
 }
 
-func (b *blockBuilder) add(key *common.InternalKey, value []byte) error {
-	err := b.cur.add(&entry{key: key.Serialize(), value: value})
+func (b *blockBuilder) add(e *entry) error {
+	// ensure that written block size will not be greater than BLOCK_SIZE
+	if !b.hasSpace(e.getSize()) {
+		return errNoSpaceInBlock
+	}
+	err := b.cur.add(e)
 	if err != nil {
 		return err
 	}
-	b.updateMin(key.UserKey)
+	b.updateMin(e.rawKey.UserKey)
 	return nil
 }
 
 func (b *blockBuilder) hasSpace(additionalSize uint64) bool {
-	return b.cur.getSize()+additionalSize > BLOCK_SIZE
+	return b.cur.getSize()+additionalSize <= BLOCK_SIZE
 }
 
 func (b *blockBuilder) finish() (*block, []byte) {
 	return b.cur, b.min
+}
+
+func (b *blockBuilder) rotateBlock() (*block, []byte) {
+	res, min := b.finish()
+	b.cur = newBlock()
+	b.min = nil
+	return res, min
 }

@@ -23,7 +23,7 @@ type Manifest struct {
 	Table      string
 	CreatedAt  int64
 	Path       string
-	BlockSize  int
+	BlockSize  uint64
 	LevelCount int
 	MaxLevels  int
 	// seqNum is a global counter for memtable writes to distinguish between new and old entries.
@@ -33,7 +33,7 @@ type Manifest struct {
 	LastFlushedFileNumber uint64
 }
 
-func newManifest(id string, dir, table string, blockSize, maxLevels int) (*Manifest, error) {
+func newManifest(id string, dir, table string, blockSize uint64, maxLevels int) (*Manifest, error) {
 	mFile, err := common.CreateFile(path.Join(dir, common.MANIFEST))
 	if err != nil {
 		return nil, err

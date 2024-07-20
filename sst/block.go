@@ -10,7 +10,7 @@ import (
 
 const (
 	// Maximum block size. When it reaches this size it will be flushed to disk
-	BLOCK_SIZE = 1 << 10
+	BLOCK_SIZE uint64 = 4096
 
 	F_PREFIX = "data_block.bin"
 )
@@ -46,16 +46,13 @@ func (b *block) get(key []byte) ([]byte, error) {
 		if decoded == nil {
 			return nil, common.ErrKeyNotFound
 		}
-		if skey.Compare(decoded) < 0 {
-			continue
+		if skey.SoftEqual(decoded) {
+			return e.value, nil
 		}
 		read += n
-		if read >= BLOCK_SIZE {
+		if uint64(read) >= BLOCK_SIZE {
 			break
 		}
-	}
-	if decoded.SoftEqual(skey) {
-		return e.value, nil
 	}
 	return nil, fmt.Errorf("key not found")
 }

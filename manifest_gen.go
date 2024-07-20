@@ -100,7 +100,7 @@ func (z *Manifest) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "BlockSize":
-			z.BlockSize, err = dc.ReadInt()
+			z.BlockSize, err = dc.ReadUint64()
 			if err != nil {
 				err = msgp.WrapError(err, "BlockSize")
 				return
@@ -235,7 +235,7 @@ func (z *Manifest) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteInt(z.BlockSize)
+	err = en.WriteUint64(z.BlockSize)
 	if err != nil {
 		err = msgp.WrapError(err, "BlockSize")
 		return
@@ -326,7 +326,7 @@ func (z *Manifest) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendString(o, z.Path)
 	// string "BlockSize"
 	o = append(o, 0xa9, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x53, 0x69, 0x7a, 0x65)
-	o = msgp.AppendInt(o, z.BlockSize)
+	o = msgp.AppendUint64(o, z.BlockSize)
 	// string "LevelCount"
 	o = append(o, 0xaa, 0x4c, 0x65, 0x76, 0x65, 0x6c, 0x43, 0x6f, 0x75, 0x6e, 0x74)
 	o = msgp.AppendInt(o, z.LevelCount)
@@ -439,7 +439,7 @@ func (z *Manifest) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "BlockSize":
-			z.BlockSize, bts, err = msgp.ReadIntBytes(bts)
+			z.BlockSize, bts, err = msgp.ReadUint64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "BlockSize")
 				return
@@ -499,6 +499,6 @@ func (z *Manifest) Msgsize() (s int) {
 			s += msgp.StringPrefixSize + len(z.Levels[za0002][za0003])
 		}
 	}
-	s += 6 + msgp.StringPrefixSize + len(z.Table) + 10 + msgp.Int64Size + 5 + msgp.StringPrefixSize + len(z.Path) + 10 + msgp.IntSize + 11 + msgp.IntSize + 10 + msgp.IntSize + 7 + msgp.Uint64Size + 15 + msgp.Uint64Size + 22 + msgp.Uint64Size
+	s += 6 + msgp.StringPrefixSize + len(z.Table) + 10 + msgp.Int64Size + 5 + msgp.StringPrefixSize + len(z.Path) + 10 + msgp.Uint64Size + 11 + msgp.IntSize + 10 + msgp.IntSize + 7 + msgp.Uint64Size + 15 + msgp.Uint64Size + 22 + msgp.Uint64Size
 	return
 }

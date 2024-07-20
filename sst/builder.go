@@ -1,6 +1,7 @@
 package sst
 
 import (
+	"errors"
 	"os"
 	"path"
 	"time"
@@ -44,15 +45,19 @@ func NewBuilder(logger *log.Logger, dir string, n uint64, id string) Builder {
 }
 
 func (bdr *builder) Add(key *common.InternalKey, value []byte) Builder {
-	// ensure that written block size will not be greater than BLOCK_SIZE
-	if !bdr.curBB.hasSpace(uint64(key.GetSize())) {
-		b, min := bdr.curBB.finish()
-		bdr.flushBlock(b, min)
-		bdr.curBB = newBlockBuilder()
-	}
-	err := bdr.curBB.add(key, value)
-	if err != nil {
+	e := &entry{key: key.Serialize(), value: value, rawKey: key}
+	//  todo: add padding
+	err := bdr.curBB.add(e)
+	if err != nil && !errors.Is(err, errNoSpaceInBlock) {
 		panic(err)
+	}
+	if errors.Is(err, errNoSpaceInBlock) {
+		toFlush, minVal := bdr.curBB.rotateBlock()
+		bdr.flushBlock(toFlush, minVal)
+		if err := bdr.curBB.add(e); err != nil {
+			// we just created new block, so there should be not errNoSpaceInBlock
+			panic(err)
+		}
 	}
 	bdr.bf.Add(key.UserKey)
 	return bdr

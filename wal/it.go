@@ -2,34 +2,44 @@ package wal
 
 import (
 	"bufio"
-	"bytes"
+	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 )
 
 type Iterator struct {
 	reader *bufio.Reader
+	b      *block
 }
 
 func NewIterator(f io.Reader) (*Iterator, error) {
 	r := bufio.NewReader(f)
-	return &Iterator{
+	it := &Iterator{
 		reader: r,
-	}, nil
+		b:      &block{},
+	}
+	return it, it.loadBlock()
 }
 
 func (it *Iterator) Next() (*WalIteratorResult, error) {
-	line, _, err := it.reader.ReadLine()
-	if err != nil {
-		return nil, err
+	if it.b.off >= it.b.size {
+		return nil, io.EOF
 	}
-	i := bytes.IndexByte(line, '|')
-	if i < 0 {
-		fmt.Printf("%s\n", line)
-		return nil, errors.New("wal delimiter not found")
+	dataLen, read := binary.Uvarint(it.b.buf[it.b.off:])
+	if dataLen == 0 {
+		err := it.loadBlock()
+		if err != nil {
+			return nil, err
+		}
+		// try to read from the new block
+		dataLen, read = binary.Uvarint(it.b.buf[it.b.off:])
 	}
-	return walItResFromBytes(line[i+1:])
+	end := it.b.off + int(dataLen) + read
+	buf := it.b.buf[it.b.off:end]
+	it.b.off += end
+	data := make([]byte, dataLen)
+	copy(data, buf[read:])
+	return walItResFromBytes(data)
 }
 
 func Iter(it *Iterator, f func(wr *WalIteratorResult) error) error {
@@ -45,4 +55,14 @@ func Iter(it *Iterator, f func(wr *WalIteratorResult) error) error {
 			return err
 		}
 	}
+}
+
+func (it *Iterator) loadBlock() error {
+	var err error
+	it.b.size, err = io.ReadFull(it.reader, it.b.buf[:])
+	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
+		return err
+	}
+	it.b.off = 0
+	return nil
 }

@@ -2,23 +2,75 @@ package wal
 
 import (
 	"bufio"
-	"fmt"
+	"encoding/binary"
+	"errors"
+	"io"
 	"os"
-	"sync"
-	"time"
 )
 
-type writer struct {
-	mu sync.Mutex
+type syncWriter interface {
+	io.Writer
+	Sync() error
+}
 
-	o          *Opts
-	file       *os.File
-	off        int64
-	size       int64
-	lsn        int
-	buf        *bufio.Writer
-	syncTicker *time.Ticker
-	exitChan   chan struct{}
+const (
+	bSize = 4096
+)
+
+var (
+	errBlockFull = errors.New("no more space in block")
+)
+
+// todo: chunking
+
+type block struct {
+	buf  [bSize]byte
+	off  int
+	size int
+	w    *bufio.Writer
+}
+
+func (b *block) write(data []byte) error {
+	if b.off+len(data)+binary.MaxVarintLen64 > bSize {
+		return errBlockFull
+	}
+	dataLen := len(data)
+	buf := b.buf[b.off : b.off+dataLen+binary.MaxVarintLen64]
+	written := binary.PutUvarint(buf[:], uint64(dataLen))
+	copy(buf[written:], data)
+	totalWritten := written + dataLen
+	b.off += totalWritten
+	return b.persist(buf[:totalWritten])
+}
+
+func (b *block) persist(data []byte) error {
+	_, err := b.w.Write(data)
+	if err != nil {
+		return err
+	}
+	err = b.w.Flush()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (b *block) rotate() error {
+	clear(b.buf[b.off:])
+	err := b.persist(b.buf[b.off:])
+	if err != nil {
+		return err
+	}
+	b.off = 0
+	return nil
+}
+
+type writer struct {
+	o    *Opts
+	file *os.File
+	b    *block
+
+	// lsn        int
 }
 
 type Writer interface {
@@ -28,64 +80,35 @@ type Writer interface {
 
 func newWriter(f *os.File, o *Opts) (*writer, error) {
 	w := &writer{
-		file:       f,
-		syncTicker: time.NewTicker(o.SyncInterval),
-		o:          o,
-		exitChan:   make(chan struct{}),
+		file: f,
+		o:    o,
+		b: &block{
+			w: bufio.NewWriter(f),
+		},
 	}
-
-	w.buf = bufio.NewWriter(f)
-
-	go w.runSyncWorker(w.exitChan)
 	return w, nil
 }
 
-func (w *writer) internalEncode(b []byte) []byte {
-	lsn := w.lsn
-	data := []byte(fmt.Sprintf("%v %d|%s\n", time.Now().Unix(), lsn, b))
-	// sum := md5.Sum([]byte(data))
-	return data
-}
-
-func (w *writer) runSyncWorker(exitChan <-chan struct{}) {
-	for {
-
-		select {
-		case <-w.syncTicker.C:
-			w.mu.Lock()
-			w.sync()
-			w.mu.Unlock()
-		case <-exitChan:
-			return
+func (w *writer) Write(data []byte) error {
+	err := w.b.write(data)
+	if err != nil {
+		if err != errBlockFull {
+			return err
+		}
+		if err := w.b.rotate(); err != nil {
+			return err
+		}
+		if err := w.b.write(data); err != nil {
+			// todo: before adding chunking iff we just roated block and still can't write record
+			// then just panic as there is nothing we could do
+			panic(err)
 		}
 	}
-}
-
-// sync requiers to hold lock on mu
-func (w *writer) sync() error {
-	return w.buf.Flush()
-	// return w.file.Sync()
-}
-
-func (w *writer) Write(data []byte) error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	enc := w.internalEncode(w.o.Encoder(data))
-	if _, err := w.buf.Write(enc); err != nil {
-		return err
-	}
-	w.lsn += 1
 	return nil
 }
 
 func (w *writer) Close() error {
-	w.exitChan <- struct{}{}
-
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	if err := w.sync(); err != nil {
+	if err := w.b.rotate(); err != nil {
 		return err
 	}
 

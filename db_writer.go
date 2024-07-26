@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"godb/common"
 	"godb/memtable"
@@ -53,11 +54,14 @@ func applyToMemtable(mem *memtable.MemTable, batch *Batch) error {
 }
 
 func (l *db) applyToWal(b *Batch) error {
+	// todo: log entire batch
+	start := time.Now()
 	for _, a := range b.actions {
 		err := l.wlw.Write(a.byte())
 		if err != nil {
 			return err
 		}
 	}
+	l.logger.Event("applyToWal", start)
 	return nil
 }

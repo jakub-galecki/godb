@@ -21,7 +21,7 @@ func NewIterator(f io.Reader) (*Iterator, error) {
 	return it, it.loadBlock()
 }
 
-func (it *Iterator) Next() (*WalIteratorResult, error) {
+func (it *Iterator) Next() ([]byte, error) {
 	if it.b.off >= it.b.size {
 		return nil, io.EOF
 	}
@@ -39,10 +39,10 @@ func (it *Iterator) Next() (*WalIteratorResult, error) {
 	it.b.off += end
 	data := make([]byte, dataLen)
 	copy(data, buf[read:])
-	return walItResFromBytes(data)
+	return data, nil
 }
 
-func Iter(it *Iterator, f func(wr *WalIteratorResult) error) error {
+func Iter(it *Iterator, f func(raw []byte) error) error {
 	for {
 		wr, err := it.Next()
 		if errors.Is(err, io.EOF) {

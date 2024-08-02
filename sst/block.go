@@ -27,7 +27,6 @@ func newBlock() *block {
 }
 
 func (b *block) get(key []byte) ([]byte, error) {
-	// maybe: implement block offests and binary search
 	var (
 		e       = entry{}
 		skey    = common.SearchInternalKey(key)

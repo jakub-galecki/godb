@@ -30,21 +30,6 @@ type WalIteratorResult struct {
 	Value []byte
 }
 
-func walItResFromBytes(b []byte) (*WalIteratorResult, error) {
-	var (
-		op    common.DbOp
-		key   string
-		value string
-	)
-
-	_, err := fmt.Sscanf(string(b), "%d %s %s", &op, &key, &value)
-	if err != nil {
-		return nil, err
-	}
-
-	return &WalIteratorResult{op, []byte(key), []byte(value)}, nil
-}
-
 /*
 NOTE
 

@@ -39,14 +39,20 @@ func (l *db) applyBatch(b *Batch) error {
 }
 
 func applyToMemtable(mem *memtable.MemTable, batch *Batch) error {
-	for _, a := range batch.actions {
-		switch a.kind {
+	it := batch.Iter()
+	for {
+		op, key, val := it.Next()
+		if op == 0 && key == nil && val == nil {
+			// iteratior exhausted
+			break
+		}
+		switch op {
 		case common.SET:
-			mem.Set(a.key, a.value)
+			mem.Set(key, val)
 		case common.DELETE:
-			mem.Delete(a.key)
+			mem.Delete(key)
 		default:
-			panic("unhandled default case")
+			panic("unknown db operation")
 		}
 	}
 	batch.committed.Store(true)
@@ -56,12 +62,7 @@ func applyToMemtable(mem *memtable.MemTable, batch *Batch) error {
 func (l *db) applyToWal(b *Batch) error {
 	// todo: log entire batch
 	start := time.Now()
-	for _, a := range b.actions {
-		err := l.wlw.Write(a.byte())
-		if err != nil {
-			return err
-		}
-	}
+	l.wlw.Write(b.encode())
 	l.logger.Event("applyToWal", start)
 	return nil
 }

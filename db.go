@@ -174,15 +174,9 @@ func (l *db) recoverWal(wals []wal.WalLogNum) (err error) {
 		}
 
 		mem := memtable.New(uint64(id))
-		err = wal.Iter(it, func(wr *wal.WalIteratorResult) error {
-			switch wr.Op {
-			case common.SET:
-				mem.Set(wr.Key, wr.Value)
-			case common.DELETE:
-				mem.Delete(wr.Key)
-			default:
-			}
-			return nil
+		err = wal.Iter(it, func(raw []byte) error {
+			b := DecodeBatch(raw)
+			return applyToMemtable(mem, b)
 		})
 		if err != nil {
 			return nil, err

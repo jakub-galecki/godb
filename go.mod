@@ -10,7 +10,6 @@ require (
 )
 
 require (
-	github.com/andy-kimball/arenaskl v0.0.0-20200617143215-f701008588b9 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

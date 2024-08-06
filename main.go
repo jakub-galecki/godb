@@ -22,7 +22,10 @@ func main() {
 
 	// ttrace.Start(tf)
 
-	lsmt := Open("tt111121")
+	lsmt, err := Open("tt111121")
+    if err != nil {
+        panic(err)
+    }
 	for i := 0; i < 10000; i++ {
 		_ = lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))
 	}

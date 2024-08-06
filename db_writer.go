@@ -10,16 +10,17 @@ import (
 
 func (l *db) Set(key, value []byte) error {
 	batch := newBatch().Set(key, value)
+	defer batch.release()
 	return l.applyBatch(batch)
 }
 
 func (l *db) Delete(key []byte) error {
 	batch := newBatch().Delete(key)
+	defer batch.release()
 	return l.applyBatch(batch)
 }
 
 func (l *db) applyBatch(b *Batch) error {
-	defer b.release()
 	// start := time.Now()
 
 	if b.committed.Load() {
@@ -63,6 +64,6 @@ func (l *db) applyToWal(b *Batch) error {
 	// todo: log entire batch
 	start := time.Now()
 	l.wlw.Write(b.encode())
-	l.logger.Event("applyToWal", start)
+	l.opts.logger.Event("applyToWal", start)
 	return nil
 }

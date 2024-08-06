@@ -9,7 +9,7 @@ import (
 )
 
 func (l *db) exceededSize() bool {
-	l.logger.Debug().Uint64("memtable_size", l.mem.GetSize())
+	l.opts.logger.Debug().Uint64("memtable_size", l.mem.GetSize())
 	return l.mem.GetSize() > common.MAX_MEMTABLE_THRESHOLD
 }
 
@@ -40,7 +40,7 @@ func (l *db) drainSink() {
 		}
 
 		if m != nil {
-			l.logger.Debug().Msg("got memtable to flush")
+			l.opts.logger.Debug().Msg("got memtable to flush")
 
 			if err := l.flush(m); err != nil {
 				panic(err)
@@ -71,7 +71,7 @@ func (l *db) flush(fl *memtable.MemTable) error {
 		return err
 	}
 
-	l.logger.Event("flush", start)
+	l.opts.logger.Event("flush", start)
 	return nil
 }
 
@@ -84,12 +84,12 @@ func (l *db) rotateWal(seqNum uint64) (err error) {
 }
 
 func (l *db) maybeFlush(force bool) {
-	l.logger.Debug().Uint64("maybe_flush", l.mem.GetSize())
+	l.opts.logger.Debug().Uint64("maybe_flush", l.mem.GetSize())
 	if l.exceededSize() || force {
-		l.logger.Debug().Uint64("size", l.mem.GetSize()).Msg("memtable size exceeded")
+		l.opts.logger.Debug().Uint64("size", l.mem.GetSize()).Msg("memtable size exceeded")
 		err := l.moveToSink()
 		if err != nil {
-			l.logger.Error().Err(err).Msg("error while moving to sink")
+			l.opts.logger.Error().Err(err).Msg("error while moving to sink")
 		}
 	}
 }

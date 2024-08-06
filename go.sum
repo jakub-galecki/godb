@@ -1,5 +1,3 @@
-github.com/andy-kimball/arenaskl v0.0.0-20200617143215-f701008588b9 h1:vCvyXiLsgAs7qgclk56iBTJQ+gdfiVuzfe5T6sVBL+w=
-github.com/andy-kimball/arenaskl v0.0.0-20200617143215-f701008588b9/go.mod h1:V2fyPx0Gm2VBNpGPq4z0bjNRaBPR+kC3aSqIuiWCdg4=
 github.com/bits-and-blooms/bitset v1.10.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
 github.com/bits-and-blooms/bitset v1.13.0 h1:bAQ9OPNFYbGHV6Nez0tmNI0RiEu7/hxlYJRUA0wFAVE=
 github.com/bits-and-blooms/bitset v1.13.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=

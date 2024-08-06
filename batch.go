@@ -111,6 +111,7 @@ func (b *Batch) decode(raw []byte) {
 func DecodeBatch(raw []byte) *Batch {
 	b := newBatch()
 	b.decode(raw)
+	b.off = uint64(len(b.buf))
 	return b
 }
 

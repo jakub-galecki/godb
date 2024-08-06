@@ -36,7 +36,7 @@ func (it *Iterator) Next() ([]byte, error) {
 	}
 	end := it.b.off + int(dataLen) + read
 	buf := it.b.buf[it.b.off:end]
-	it.b.off += end
+	it.b.off += int(dataLen) + read
 	data := make([]byte, dataLen)
 	copy(data, buf[read:])
 	return data, nil

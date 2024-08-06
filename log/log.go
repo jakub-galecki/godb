@@ -1,10 +1,7 @@
 package log
 
 import (
-	"fmt"
-	"godb/common"
 	"io"
-	"os"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -21,23 +18,8 @@ type Logger struct {
 //		},
 //	}
 //
-
 // todo: add  options with log level
-func NewLogger(name string) *Logger {
-	logPath := os.Getenv("GODB_LOG_PATH")
-	var dst io.WriteCloser
-	var err error
-	if logPath != "" {
-		if err := common.EnsureDir(logPath); err != nil {
-			panic(err)
-		}
-		dst, err = os.OpenFile(fmt.Sprintf("%s/%s.log", logPath, name), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		dst = os.Stdout
-	}
+func NewLogger(name string, dst io.WriteCloser) *Logger {
 	return &Logger{Logger: zerolog.New(dst).With().Timestamp().Logger(), f: dst}
 }
 

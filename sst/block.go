@@ -16,13 +16,13 @@ const (
 )
 
 type block struct {
-	buf  *bytes.Buffer
+	buf  *bytes.Buffer // todo: change to []byte
 	size uint64
 }
 
 func newBlock() *block {
 	return &block{
-		buf: new(bytes.Buffer),
+		buf: bytes.NewBuffer(make([]byte, BLOCK_SIZE)),
 	}
 }
 

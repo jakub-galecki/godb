@@ -1,5 +1,14 @@
 > Notes based on the https://github.com/facebook/rocksdb/wiki/Leveled-Compaction
 
+
+## Read Amplification
+
+Number of disk reads for one get operation 
+
+## Write Amp.
+
+The ratio of memtables flushed to the disk versus total data written to the disk.
+
 ## Level Target Sizes 
 ```
 - L1 : 300 MB 
@@ -32,7 +41,6 @@ If multiple compaction trigger compation we must choose wich compaction to run f
 *where `max_bytes_for_level_base` is L1 target size*
 
 Level with the highest score takes the priortity to compact.   
-
 
 
 ### Choose Level Compaction Files

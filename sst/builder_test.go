@@ -13,7 +13,7 @@ import (
 
 func TestBuilder(t *testing.T) {
 	storage := memtable.New(0)
-	logger := log.NewLogger("")
+	logger := log.NewLogger("", nil)
 	for i := 0; i < 1000; i++ {
 		k := fmt.Sprintf("k%d", i)
 		v := fmt.Sprintf("v%d", i+100)

@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"godb/log"
 	"godb/sst"
 
 	"godb/common"
@@ -43,48 +42,19 @@ type db struct {
 	mutex      sync.Mutex
 	opts       dbOpts
 	manifest   *Manifest
-	logger     *log.Logger
 	cleaner    *cleaner
 }
 
-type dbOpts struct {
-	table string
-	path  string
-	// enableWal bool
-}
-
-type Opts struct {
-	DbPath string
-}
-
-type DbOpt func(*dbOpts)
-
-func WithDbPath(path string) DbOpt {
-	return func(o *dbOpts) {
-		o.path = path
+func Open(table string, opts ...DbOpt) (*db, error) {
+	dbOpts := defaultOpts(table, opts)
+	if err := dbOpts.validate(); err != nil {
+		return nil, err
 	}
-}
-
-func Open(table string, opts ...DbOpt) *db {
-	dbOpts := dbOpts{
-		table: table,
-		path:  "/tmp/",
-	}
-
-	for _, ofn := range opts {
-		ofn(&dbOpts)
-	}
-
-	dbOpts.path = path.Join(dbOpts.path, table)
-
-	// if err := common.EnsureDir(dbOpts.path)
-
 	d := db{
 		id:         string(sha256.New().Sum([]byte(table))),
 		sink:       make([]*memtable.MemTable, 0),
 		blockCache: cache.New(cache.WithVerbose[[]byte](true)),
 		opts:       dbOpts,
-		logger:     log.NewLogger("godb"),
 		cleaner:    newClener(),
 	}
 	switch _, err := os.Stat(dbOpts.path); {
@@ -101,7 +71,7 @@ func Open(table string, opts ...DbOpt) *db {
 		}
 	}
 	go d.drainSink()
-	return &d
+	return &d, nil
 }
 
 func (l *db) recover() (err error) {
@@ -118,9 +88,9 @@ func (l *db) recover() (err error) {
 	if true {
 		b, err := json.Marshal(m)
 		if err != nil {
-			l.logger.Error().Err(err).Msg("marshaling Manifest for log")
+			l.opts.logger.Error().Err(err).Msg("marshaling Manifest for log")
 		}
-		l.logger.Info().RawJSON("Manifest", b).Msg("recovered Manifest")
+		l.opts.logger.Info().RawJSON("Manifest", b).Msg("recovered Manifest")
 	}
 
 	l.manifest = m
@@ -156,7 +126,7 @@ func (l *db) recover() (err error) {
 	if err != nil {
 		return err
 	}
-	l.logger.Event("recover", start)
+	l.opts.logger.Event("recover", start)
 	return nil
 }
 
@@ -176,6 +146,7 @@ func (l *db) recoverWal(wals []wal.WalLogNum) (err error) {
 		mem := memtable.New(uint64(id))
 		err = wal.Iter(it, func(raw []byte) error {
 			b := DecodeBatch(raw)
+            defer b.release()
 			return applyToMemtable(mem, b)
 		})
 		if err != nil {
@@ -215,7 +186,7 @@ func (l *db) recoverWal(wals []wal.WalLogNum) (err error) {
 		return err
 	}
 	l.mem = mem
-	l.logger.Event("recoverWal", start)
+	l.opts.logger.Event("recoverWal", start)
 	return nil
 }
 
@@ -226,7 +197,7 @@ func (l *db) loadLevels() (err error) {
 		return errors.New("Manifest not loaded")
 	}
 	if l.l0 == nil {
-		l.l0 = newLevel(0, l.getSstPath(), l.blockCache, l.logger)
+		l.l0 = newLevel(0, l.getSstPath(), l.blockCache, l.opts.logger)
 	}
 	err = l.l0.loadSSTs(l.manifest.L0)
 	if err != nil {
@@ -238,7 +209,7 @@ func (l *db) loadLevels() (err error) {
 		l.levels = make([]*level, l.manifest.LevelCount-1) // -1 because L0 is stored in separated field
 		for i, ssts := range l.manifest.Levels {
 			if l.levels[i] == nil {
-				l.levels[i] = newLevel(i, l.getSstPath(), l.blockCache, l.logger)
+				l.levels[i] = newLevel(i, l.getSstPath(), l.blockCache, l.opts.logger)
 			}
 			err = l.levels[i].loadSSTs(ssts)
 			if err != nil {
@@ -246,7 +217,7 @@ func (l *db) loadLevels() (err error) {
 			}
 		}
 	}
-	l.logger.Event("loadLevels", start)
+	l.opts.logger.Event("loadLevels", start)
 	return nil
 }
 
@@ -285,7 +256,7 @@ func (l *db) new() (err error) {
 		return err
 	}
 	// for now use global cache, maybe change so l0 has its own block cache
-	l.l0 = newLevel(0, sstPath, l.blockCache, l.logger)
+	l.l0 = newLevel(0, sstPath, l.blockCache, l.opts.logger)
 	l.levels = make([]*level, 0)
 	return nil
 }

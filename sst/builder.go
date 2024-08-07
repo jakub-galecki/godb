@@ -25,7 +25,7 @@ type builder struct {
 	dir    string
 	file   vfs.VFS[block]
 	bf     *bloom.BloomFilter
-	index  *indexBuilder // one block should be enough for now but should be changes
+	index  *indexBuilder
 	sstId  string
 	logger *log.Logger
 }
@@ -46,7 +46,6 @@ func NewBuilder(logger *log.Logger, dir string, n uint64, id string) Builder {
 
 func (bdr *builder) Add(key *common.InternalKey, value []byte) Builder {
 	e := &entry{key: key.Serialize(), value: value, rawKey: key}
-	//  todo: add padding
 	err := bdr.curBB.add(e)
 	if err != nil && !errors.Is(err, errNoSpaceInBlock) {
 		panic(err)
@@ -91,7 +90,7 @@ func (bdr *builder) Finish() *SST {
 
 	// index
 	meta.indexOffset = bdr.offset
-	n, err := bdr.file.Write(bdr.index.buf.Bytes())
+	n, err := bdr.file.Write(bdr.index.buf[:bdr.index.off])
 	if err != nil {
 		panic(err)
 	}
@@ -122,7 +121,7 @@ func (bdr *builder) Finish() *SST {
 	return &SST{
 		meta:   meta,
 		bf:     bdr.bf,
-		idx:    indexFromBuf(bdr.index.buf),
+		idx:    indexFromBuf(bdr.index.buf[:bdr.index.off]),
 		fref:   fref,
 		sstId:  bdr.sstId,
 		logger: bdr.logger,
@@ -136,7 +135,7 @@ func (bdr *builder) addIndex(minKey []byte) {
 }
 
 func (bdr *builder) flushBlock(b *block, minKey []byte) {
-	n, err := bdr.file.Write(b.buf.Bytes())
+	n, err := bdr.file.Write(b.buf)
 	bdr.addIndex(minKey)
 	bdr.offset += uint64(n)
 	bdr.size += uint64(n)

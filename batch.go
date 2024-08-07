@@ -55,11 +55,11 @@ func (b *Batch) Delete(key []byte) *Batch {
 }
 
 func (b *Batch) add(op common.DbOp, key, value []byte) {
+	keyLen, valueLen := len(key), len(value)
+	need := 2*binary.MaxVarintLen64 + keyLen + valueLen + 1
+	b.grow(need)
 	copy(b.buf[b.off:], []byte{op})
 	b.off += 1
-	keyLen, valueLen := len(key), len(value)
-	need := 2*binary.MaxVarintLen64 + keyLen + valueLen
-	b.grow(need)
 	written := binary.PutUvarint(b.buf[b.off:], uint64(keyLen))
 	b.off += uint64(written)
 	copy(b.buf[b.off:], key)

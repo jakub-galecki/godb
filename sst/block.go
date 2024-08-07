@@ -1,7 +1,6 @@
 package sst
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"godb/common"
@@ -16,13 +15,14 @@ const (
 )
 
 type block struct {
-	buf  *bytes.Buffer // todo: change to []byte
+	buf  []byte
+	off  uint64
 	size uint64
 }
 
 func newBlock() *block {
 	return &block{
-		buf: bytes.NewBuffer(make([]byte, BLOCK_SIZE)),
+		buf: make([]byte, BLOCK_SIZE),
 	}
 }
 
@@ -30,11 +30,11 @@ func (b *block) get(key []byte) ([]byte, error) {
 	var (
 		e       = entry{}
 		skey    = common.SearchInternalKey(key)
-		read    = 0
+		off     = 0
 		decoded *common.InternalKey
 	)
 	for {
-		n, err := decode(b.buf, &e)
+		n, err := decode(b.buf[off:], &e)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
@@ -48,8 +48,8 @@ func (b *block) get(key []byte) ([]byte, error) {
 		if skey.SoftEqual(decoded) {
 			return e.value, nil
 		}
-		read += n
-		if uint64(read) >= BLOCK_SIZE {
+		off += n
+		if uint64(off) >= BLOCK_SIZE {
 			break
 		}
 	}
@@ -57,10 +57,14 @@ func (b *block) get(key []byte) ([]byte, error) {
 }
 
 func (b *block) add(e *entry) error {
-	n, err := encode(e, b.buf)
+	if e.getSize() > BLOCK_SIZE {
+		return errNoSpaceInBlock
+	}
+	n, err := encode(e, b.buf[b.off:])
 	if err != nil {
 		return err
 	}
+	b.off += uint64(n)
 	b.size += uint64(n)
 	return nil
 }

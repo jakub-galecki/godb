@@ -1,13 +1,13 @@
 package sst
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"io"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func Test_BlockIterator(t *testing.T) {
@@ -18,7 +18,7 @@ func Test_BlockIterator(t *testing.T) {
 	_, err = io.ReadFull(f, rawBlock[:])
 	require.NoError(t, err)
 
-	b := &block{buf: bytes.NewBuffer(rawBlock)}
+	b := &block{buf: rawBlock}
 	it := NewBlockIterator(b)
 	require.NotNil(t, it)
 

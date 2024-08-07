@@ -19,11 +19,11 @@ func TestBuilder(t *testing.T) {
 		v := fmt.Sprintf("v%d", i+100)
 		storage.Set([]byte(k), []byte(v))
 	}
-	_, err := WriteMemTable(logger, storage, fmt.Sprintf("%s\\%s", os.TempDir(), "ttt"), nil, "0.0")
+	_, err := WriteMemTable(logger, storage, fmt.Sprintf("%s/%s", os.TempDir(), "ttt"), nil, "0.0")
 	assert.NoError(t, err)
 	//logger.Debugf("%s  -> %v", ss.GetTable(), ss.GetTableMeta())
 
-	fsst, err := Open(fmt.Sprintf("%s\\%s\\0.db", os.TempDir(), "ttt"), "0.0", logger)
+	fsst, err := Open(fmt.Sprintf("%s/%s/0.0", os.TempDir(), "ttt"), "0.0", logger)
 	assert.NoError(t, err)
 
 	for i := 0; i < 1000; i++ {
@@ -38,5 +38,4 @@ func TestBuilder(t *testing.T) {
 		assert.NoError(t, found)
 		assert.Equal(t, []byte(v), vFound)
 	}
-
 }

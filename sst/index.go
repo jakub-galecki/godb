@@ -11,25 +11,38 @@ var (
 )
 
 type indexBuilder struct {
-	buf  *bytes.Buffer
+	buf  []byte
+	off  uint64
 	size int
 }
 
 func newBuilderIndex() *indexBuilder {
 	return &indexBuilder{
-		buf: new(bytes.Buffer),
+		buf: make([]byte, BLOCK_SIZE),
 	}
 }
 
 func (i *indexBuilder) add(key []byte, off uint64) error {
-	e := &entry{key: key, value: make([]byte, 8)}
-	binary.BigEndian.PutUint64(e.value, off)
-	n, err := encode(e, i.buf)
+	e := &entry{key: key, value: make([]byte, binary.MaxVarintLen64)}
+	i.grow(int(e.getSize()) + i.size)
+	binary.PutUvarint(e.value, off)
+	n, err := encode(e, i.buf[i.off:])
 	if err != nil {
 		return err
 	}
+	i.off += uint64(n)
 	i.size += n
 	return nil
+}
+
+func (i *indexBuilder) grow(n int) {
+	nSize := n + len(i.buf)
+	if nSize > cap(i.buf) {
+		newSlice := make([]byte, (n+len(i.buf))*2)
+		copy(newSlice, i.buf)
+		i.buf = newSlice
+	}
+	i.buf = i.buf[:nSize]
 }
 
 type indexEntry struct {
@@ -42,29 +55,28 @@ type index struct {
 	off []*indexEntry
 }
 
-func indexFromBuf(buf *bytes.Buffer) *index {
+func indexFromBuf(buf []byte) *index {
 	var (
 		idx    = index{}
 		tmpEnt = entry{}
 
-		err error
-		n   int
+		err    error
+		n, off int
 	)
 
-	curLen, bufLen := 0, buf.Len()
-
-	for n, err = decode(buf, &tmpEnt); err == nil; n, err = decode(buf, &tmpEnt) {
+	off, bufLen := 0, len(buf)
+	for n, err = decode(buf[off:], &tmpEnt); err == nil; n, err = decode(buf[off:], &tmpEnt) {
 		if len(tmpEnt.key) == 0 && len(tmpEnt.value) == 0 {
 			break
 		}
+		foff, _ := binary.Uvarint(tmpEnt.value)
 		idx.off = append(idx.off, &indexEntry{
 			key:     tmpEnt.key,
-			foffset: binary.BigEndian.Uint64(tmpEnt.value),
+			foffset: foff,
 		})
 		// logger.Debugf("decoded entry key: [%s], value [%s]", tmpEnt.key, tmpEnt.value)
-
-		curLen += n
-		if curLen >= bufLen {
+		off += n
+		if off >= bufLen {
 			break
 		}
 	}

@@ -1,19 +1,17 @@
 package sst
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"godb/common"
-	"io"
 )
 
-func encode(e *entry, w io.Writer) (int, error) {
-	return w.Write(e.encode())
+func encode(e *entry, dst []byte) (int, error) {
+	return e.encode(dst)
 }
 
-func decode(r io.Reader, e *entry) (int, error) {
-	return e.decode(r)
+func decode(src []byte, e *entry) (int, error) {
+	return e.decode(src)
 }
 
 type entry struct {
@@ -29,74 +27,53 @@ func newEntry(key, value []byte) *entry {
 	}
 }
 
-func (e *entry) encode() []byte {
-	res := new(bytes.Buffer)
+func (e *entry) encode(dst []byte) (int, error) {
+	off := 0
+	keyLen, valueLen := len(e.key), len(e.value)
+	n := binary.PutUvarint(dst[:], uint64(keyLen))
+	off += n
 
-	keyLen := make([]byte, 8)
-	binary.BigEndian.PutUint64(keyLen, uint64(len(e.key)))
+	copy(dst[off:], e.key)
+	off += keyLen
 
-	err := binary.Write(res, binary.BigEndian, keyLen)
-	if err != nil {
-		panic(err)
-	}
-	err = binary.Write(res, binary.BigEndian, e.key)
-	if err != nil {
-		panic(err)
-	}
-	valueLen := make([]byte, 8)
-	binary.BigEndian.PutUint64(valueLen, uint64(len(e.value)))
+	n = binary.PutUvarint(dst[off:], uint64(valueLen))
+	off += n
 
-	err = binary.Write(res, binary.BigEndian, valueLen)
-	if err != nil {
-		panic(err)
-	}
-	err = binary.Write(res, binary.BigEndian, e.value)
-	if err != nil {
-		panic(err)
-	}
-	return res.Bytes()
+	copy(dst[off:], e.value)
+	off += valueLen
+
+	return off, nil
 }
 
-func (e *entry) decode(r io.Reader) (int, error) {
+func (e *entry) decode(src []byte) (int, error) {
 	if e == nil {
 		return 0, fmt.Errorf("nil entry")
 	}
-	total := 0
+	var (
+		off              = 0
+		n                int
+		keyLen, valueLen uint64
+	)
 
-	keyLenBytes := make([]byte, 8)
-	n, err := r.Read(keyLenBytes)
-	if err != nil {
-		return 0, err
-	}
-	total += n
+	keyLen, n = binary.Uvarint(src)
+	off += n
 
-	keyLen := binary.BigEndian.Uint64(keyLenBytes)
 	key := make([]byte, keyLen)
-	n, err = r.Read(key)
-	if err != nil {
-		return 0, err
-	}
-	total += n
+	copy(key, src[off:off+int(keyLen)])
+	off += int(keyLen)
 
-	valueLenBytes := make([]byte, 8)
-	n, err = r.Read(valueLenBytes)
-	if err != nil {
-		return 0, err
-	}
-	total += n
+	valueLen, n = binary.Uvarint(src[off:])
+	off += n
 
-	valueLen := binary.BigEndian.Uint64(valueLenBytes)
 	value := make([]byte, valueLen)
-	n, err = r.Read(value)
-	if err != nil {
-		return 0, err
-	}
-	total += n
+	copy(value, src[off:off+int(valueLen)])
+	off += int(valueLen)
+
 	e.key = key
 	e.value = value
-	return total, nil
+	return off, nil
 }
 
 func (e *entry) getSize() uint64 {
-	return uint64(len(e.key) + len(e.value) + 16)
+	return uint64(2*binary.MaxVarintLen64 + len(e.key) + len(e.value))
 }

@@ -69,7 +69,7 @@ func Open(path, sstId string, logger *log.Logger) (*SST, error) {
 		sstId:  sstId,
 		meta:   tm,
 		bf:     bf,
-		idx:    indexFromBuf(bytes.NewBuffer(idxBlock)),
+		idx:    indexFromBuf(idxBlock),
 		fref:   f,
 		logger: logger,
 	}, nil
@@ -87,7 +87,7 @@ func (s *SST) Get(k []byte) ([]byte, error) {
 		return idx + strconv.FormatUint(off, 10)
 	}
 	getFromBlock := func(raw, key []byte) ([]byte, error) {
-		return (&block{buf: bytes.NewBuffer(raw)}).get(key)
+		return (&block{buf: raw}).get(key)
 	}
 	// todo: reformat
 	idxEntry, err := s.idx.find(k)

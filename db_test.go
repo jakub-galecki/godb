@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
 )
@@ -12,7 +13,7 @@ import (
 // }
 
 func TestCore(t *testing.T) {
-	lsmt, err := Open("111333112311111112121")
+	lsmt, err := Open("abcdef12")
 	assert.NoError(t, err)
 	for i := 0; i < 100000; i++ {
 		err := lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))

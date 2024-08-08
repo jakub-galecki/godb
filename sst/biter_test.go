@@ -2,7 +2,6 @@ package sst
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"testing"
@@ -15,21 +14,23 @@ func Test_BlockIterator(t *testing.T) {
 	require.NoError(t, err)
 
 	rawBlock := make([]byte, BLOCK_SIZE)
-	_, err = io.ReadFull(f, rawBlock[:])
+	_, err = io.ReadFull(f, rawBlock)
 	require.NoError(t, err)
 
 	b := &block{buf: rawBlock}
 	it := NewBlockIterator(b)
 	require.NotNil(t, it)
 
-	for {
-		_, err := it.Next()
-		if err != nil && errors.Is(err, errNoMoreData) {
+	err = it.Next()
+	require.NoError(t, err)
+	for it.Valid() {
+		err = it.Next()
+		if errors.Is(err, errNoMoreData) {
 			break
-		} else {
-			require.NoError(t, err)
 		}
+		require.NoError(t, err)
 		key, val := it.Key(), it.Value()
-		fmt.Printf("key: %s, val: %s\n", key, val)
+		require.NotNil(t, key)
+		require.NotNil(t, val)
 	}
 }

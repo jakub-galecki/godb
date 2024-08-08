@@ -24,8 +24,9 @@ func newBuilderIndex() *indexBuilder {
 
 func (i *indexBuilder) add(key []byte, off uint64) error {
 	e := &entry{key: key, value: make([]byte, binary.MaxVarintLen64)}
-	i.grow(int(e.getSize()) + i.size)
+	i.grow(int(e.getSize()))
 	binary.PutUvarint(e.value, off)
+
 	n, err := encode(e, i.buf[i.off:])
 	if err != nil {
 		return err

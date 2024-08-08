@@ -56,6 +56,9 @@ func (e *entry) decode(src []byte) (int, error) {
 	)
 
 	keyLen, n = binary.Uvarint(src)
+	if keyLen == 0 {
+		return -1, errNoMoreData
+	}
 	off += n
 
 	key := make([]byte, keyLen)

@@ -1,0 +1,19 @@
+```
+func main() {
+	xs := make([]int, 15)
+	for i := 0; i < 15; i++ {
+		xs[i] = i
+	}
+
+	newSlice := make([]int, 30)
+	copy(newSlice, xs)
+	xs = newSlice
+
+	fmt.Printf("len = %v, cap = %v\n", len(xs), cap(xs))
+	xs = xs[:15]
+	fmt.Printf("len = %v, cap = %v\n", len(xs), cap(xs))
+}
+
+len = 30, cap = 30
+len = 15, cap = 30
+```

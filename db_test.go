@@ -13,7 +13,7 @@ import (
 // }
 
 func TestCore(t *testing.T) {
-	lsmt, err := Open("abcdef12")
+	lsmt, err := Open("abcdef1234")
 	assert.NoError(t, err)
 	for i := 0; i < 100000; i++ {
 		err := lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))

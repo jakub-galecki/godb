@@ -11,6 +11,14 @@ import (
 
 type KeyMeta uint64
 
+func (km KeyMeta) SeqNum() uint64 {
+	return uint64(km >> 8)
+}
+
+func (km KeyMeta) Kind() DbOp {
+	return uint8(km & 0b11111111)
+}
+
 const MetaLen = 8
 
 type InternalKey struct {
@@ -22,7 +30,7 @@ func SearchInternalKey(key []byte) *InternalKey {
 	return &InternalKey{key, KeyMeta(math.MaxUint64)}
 }
 
-func NewInternalKey(ukey []byte, seqNum uint64, kind uint8) *InternalKey {
+func NewInternalKey(ukey []byte, seqNum uint64, kind DbOp) *InternalKey {
 	return &InternalKey{
 		UserKey: ukey,
 		Meta:    makeMeta(seqNum, kind),
@@ -35,6 +43,14 @@ func makeMeta(seqNum uint64, kind uint8) KeyMeta {
 
 func (ik *InternalKey) GetMeta() KeyMeta {
 	return ik.Meta
+}
+
+func (ik *InternalKey) SeqNum() uint64 {
+	return ik.Meta.SeqNum()
+}
+
+func (ik *InternalKey) Kind() uint8 {
+	return ik.Meta.Kind()
 }
 
 func (ik *InternalKey) Serialize() []byte {

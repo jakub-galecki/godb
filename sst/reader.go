@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"godb/common"
 	"godb/log"
 	"io"
 	"os"
@@ -83,9 +84,6 @@ func (s *SST) Get(k []byte) ([]byte, error) {
 	if !s.bf.Test(k) {
 		return nil, ErrNotFoundInBloom
 	}
-	genCacheKey := func(idx string, off uint64) string {
-		return idx + strconv.FormatUint(off, 10)
-	}
 	getFromBlock := func(raw, key []byte) ([]byte, error) {
 		return (&block{buf: raw}).get(key)
 	}
@@ -98,26 +96,58 @@ func (s *SST) Get(k []byte) ([]byte, error) {
 	if idxEntry.foffset > s.meta.dataSize {
 		return nil, fmt.Errorf("index out of bound")
 	}
-	ck := genCacheKey(s.sstId, idxEntry.foffset)
-	if s.blockCache != nil {
-		if cEntry, err := s.blockCache.Get(ck); err == nil {
-			s.logger.Debug().
-				Str("block_entry_id", ck).
-				Msg("got block from cache")
-
-			return getFromBlock(cEntry, k)
-		}
+	b := s.getBlockFromCache(idxEntry.foffset)
+	if b != nil {
+		return getFromBlock(b, k)
 	}
 	rawBlock := make([]byte, BLOCK_SIZE)
-	if _, err := s.fref.ReadAt(rawBlock, int64(idxEntry.foffset)); err != nil && !errors.Is(err, io.EOF) {
-		s.logger.Error().Err(err).Msg("error while reading block from sst file")
+	err = s.readRawBlockFromFile(idxEntry.foffset, rawBlock)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil, common.ErrKeyNotFound
+		}
 		return nil, err
 	}
+	s.setBlockInCache(idxEntry.foffset, rawBlock)
+	return getFromBlock(rawBlock, k)
+}
+
+func (s *SST) getBlockFromCache(blockOff uint64) []byte {
+	if s.blockCache == nil {
+		return nil
+	}
+	ck := s.getCacheKey(blockOff)
+	if cEntry, err := s.blockCache.Get(ck); err == nil {
+		s.logger.Debug().
+			Str("block_entry_id", ck).
+			Msg("got block from cache")
+		return cEntry
+	}
+	return nil
+}
+
+func (s *SST) setBlockInCache(blockOff uint64, b []byte) {
+	if s.blockCache == nil {
+		return
+	}
+	ck := s.getCacheKey(blockOff)
 	if s.blockCache != nil {
-		err = s.blockCache.Set(ck, rawBlock)
+		err := s.blockCache.Set(ck, b)
 		if err != nil {
 			s.logger.Error().Err(err).Msg("error while caching block")
 		}
 	}
-	return getFromBlock(rawBlock, k)
+}
+
+func (s *SST) getCacheKey(blockOff uint64) string {
+	return s.sstId + strconv.FormatUint(blockOff, 10)
+}
+
+func (s *SST) readRawBlockFromFile(off uint64, rawBlock []byte) error {
+	_, err := s.fref.ReadAt(rawBlock, int64(off))
+	if err != nil {
+		s.logger.Error().Err(err).Msg("error while reading block from sst file")
+		return err
+	}
+	return nil
 }

@@ -26,6 +26,12 @@ func newBlock() *block {
 	}
 }
 
+func initBlock(buf []byte) *block {
+	return &block{
+		buf: buf,
+	}
+}
+
 func (b *block) get(key []byte) ([]byte, error) {
 	var (
 		e       = entry{}

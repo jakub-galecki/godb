@@ -45,10 +45,10 @@ func ListDir[T any](path string, mut func(string) (T, bool)) ([]T, error) {
 	var files []T
 	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
-            mutated, ok := mut(info.Name())
-            if !ok {
-                return nil
-            }
+			mutated, ok := mut(info.Name())
+			if !ok {
+				return nil
+			}
 			files = append(files, mutated)
 		}
 		return nil

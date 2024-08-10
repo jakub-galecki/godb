@@ -3,6 +3,7 @@ package skiplist
 import (
 	"fmt"
 	"godb/common"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -74,4 +75,11 @@ func Test_Iterator(t *testing.T) {
 	assert.Equal(t, []byte("bar.1"), val)
 
 	require.False(t, it.HasNext())
+}
+
+func Benchmark_SkipList(b *testing.B) {
+	skl := NewSkipList()
+	for n := 0; n < b.N; n++ {
+		_ = skl.Set(common.NewInternalKey([]byte("foo"+strconv.Itoa(n)), uint64(n), common.SET), []byte("bar"))
+	}
 }

@@ -21,16 +21,14 @@ func Test_BlockIterator(t *testing.T) {
 	it := NewBlockIterator(b)
 	require.NotNil(t, it)
 
-	err = it.Next()
+	key, value, err := it.Next()
 	require.NoError(t, err)
 	for it.Valid() {
-		err = it.Next()
+		require.NotNil(t, key)
+		require.NotNil(t, value)
+		key, value, err = it.Next()
 		if errors.Is(err, errNoMoreData) {
 			break
 		}
-		require.NoError(t, err)
-		key, val := it.Key(), it.Value()
-		require.NotNil(t, key)
-		require.NotNil(t, val)
 	}
 }

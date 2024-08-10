@@ -2,6 +2,7 @@ package sst
 
 import (
 	"fmt"
+	"godb/common"
 	"os"
 	"testing"
 
@@ -13,17 +14,16 @@ import (
 
 func TestBuilder(t *testing.T) {
 	storage := memtable.New(0)
-	logger := log.NewLogger("", nil)
+	logger := log.NewLogger("", log.NilLogger)
 	for i := 0; i < 1000; i++ {
 		k := fmt.Sprintf("k%d", i)
 		v := fmt.Sprintf("v%d", i+100)
-		storage.Set([]byte(k), []byte(v))
+		assert.NoError(t, storage.Set(common.NewInternalKey([]byte(k), 0, common.SET), []byte(v)))
 	}
 	_, err := WriteMemTable(logger, storage, fmt.Sprintf("%s/%s", os.TempDir(), "ttt"), nil, "0.0")
 	assert.NoError(t, err)
-	//logger.Debugf("%s  -> %v", ss.GetTable(), ss.GetTableMeta())
 
-	fsst, err := Open(fmt.Sprintf("%s/%s/0.0", os.TempDir(), "ttt"), "0.0", logger)
+	fsst, err := Open(fmt.Sprintf("%s/%s", os.TempDir(), "ttt"), "0.0", logger)
 	assert.NoError(t, err)
 
 	for i := 0; i < 1000; i++ {

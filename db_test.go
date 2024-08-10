@@ -2,18 +2,25 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
 )
 
-// func clearDb(name string) error {
-// }
+func cleanup(dir string) {
+	if err := os.RemoveAll(dir); err != nil {
+		panic(err)
+	}
+}
 
 func TestCore(t *testing.T) {
-	lsmt, err := Open("abcdef1234")
+	dbName := time.Now().Format(time.RFC3339Nano)
+	lsmt, err := Open(dbName, WithDbPath(os.TempDir()))
 	assert.NoError(t, err)
 	for i := 0; i < 100000; i++ {
 		err := lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))
@@ -24,5 +31,5 @@ func TestCore(t *testing.T) {
 		require.Truef(t, found, "key %s not found", fmt.Sprintf("foo.%d", i))
 		require.Equal(t, []byte(fmt.Sprintf("bar.%d", i)), val)
 	}
-	//lsmt.Delete([]byte("foo"))
+	cleanup(path.Join(os.TempDir(), dbName))
 }

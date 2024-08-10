@@ -92,7 +92,7 @@ func newWriter(f *os.File, o *Opts) (*writer, error) {
 func (w *writer) Write(data []byte) error {
 	err := w.b.write(data)
 	if err != nil {
-		if err != errBlockFull {
+		if !errors.Is(err, errBlockFull) {
 			return err
 		}
 		if err := w.b.rotate(); err != nil {

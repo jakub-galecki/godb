@@ -7,6 +7,8 @@ import (
 
 var errNoMoreData = errors.New("block has no more data")
 
+var _ common.Iterator = (*BlockIterator)(nil)
+
 type BlockIterator struct {
 	blk  *block
 	cure *entry
@@ -20,33 +22,27 @@ func NewBlockIterator(blk *block) *BlockIterator {
 	}
 }
 
-func (b *BlockIterator) Next() error {
+func (b *BlockIterator) Next() (*common.InternalKey, []byte, error) {
 	if uint64(b.off) >= BLOCK_SIZE {
-		return errNoMoreData
+		return nil, nil, errNoMoreData
 	}
 	n, err := decode(b.blk.buf[b.off:], b.cure)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	b.cure.rawKey = common.DeserializeKey(b.cure.key)
 	b.off += n
-	return nil
-}
-
-func (b *BlockIterator) Key() []byte {
-	if b.cure.rawKey == nil {
-		return nil
-	}
-	return b.cure.rawKey.UserKey
-}
-
-func (b *BlockIterator) Value() []byte {
-	if b.cure == nil {
-		return nil
-	}
-	return b.cure.value
+	return b.cure.rawKey, b.cure.value, nil
 }
 
 func (b *BlockIterator) Valid() bool {
-	return len(b.Key()) > 0 // value maybe nil for tombstone
+	return len(b.cure.rawKey.UserKey) > 0 // value maybe nil for tombstone
+}
+
+func (b *BlockIterator) Key() *common.InternalKey {
+	return b.cure.rawKey
+}
+
+func (b *BlockIterator) Value() []byte {
+	return b.cure.value
 }

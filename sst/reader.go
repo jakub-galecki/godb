@@ -8,18 +8,20 @@ import (
 	"godb/log"
 	"io"
 	"os"
+	"path"
 	"strconv"
 
 	"github.com/bits-and-blooms/bloom/v3"
 )
 
-func Open(path, sstId string, logger *log.Logger) (*SST, error) {
-	f, err := os.OpenFile(fmt.Sprintf("%s.db", path), os.O_RDONLY, F_PERMISSION)
+func Open(dir, sstId string, logger *log.Logger) (*SST, error) {
+	sstPath := path.Join(dir, sstId+".db")
+	f, err := os.OpenFile(sstPath, os.O_RDONLY, F_PERMISSION)
 	if err != nil {
 		return nil, err
 	}
 
-	st, err := os.Stat(fmt.Sprintf("%s.db", path))
+	st, err := os.Stat(sstPath)
 	if err != nil {
 		return nil, err
 	}

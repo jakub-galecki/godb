@@ -27,24 +27,20 @@ func New(fileNum uint64) *MemTable {
 	return &stc
 }
 
-func (m *MemTable) Set(key, value []byte) {
-	m.storage.Set(&common.InternalKey{UserKey: key}, value)
+func (m *MemTable) Set(key *common.InternalKey, value []byte) error {
+	return m.storage.Set(key, value)
 }
 
 func (m *MemTable) Get(key []byte) ([]byte, bool) {
-	val, found := m.storage.Get(key)
-	if val != nil {
-		return val, found
-	}
-	return nil, false
+	return m.storage.Get(key)
 }
 
 func (m *MemTable) GetSize() uint64 {
 	return m.storage.GetSize()
 }
 
-func (m *MemTable) Delete(key []byte) error {
-	return m.storage.Set(&common.InternalKey{UserKey: key}, common.TOMBSTONE)
+func (m *MemTable) Delete(key *common.InternalKey) error {
+	return m.storage.Set(key, common.TOMBSTONE)
 }
 
 func (m *MemTable) Iterator() common.InnerStorageIterator {

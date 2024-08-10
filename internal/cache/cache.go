@@ -1,35 +1,41 @@
 package cache
 
 import (
-	"errors"
+	"godb/common"
 	"sync"
 	"time"
 )
 
 const (
-	defaultExp = 5 * time.Second
+	defaultExp = 3 * time.Second
 )
+
+type Cacher[T any] interface {
+	Set(key string, value T) error
+	Get(key string) (T, error)
+	Has(key string) bool
+}
 
 type entry[T any] struct {
 	v   T
 	ttl int64
 }
 
-type CacheOptionFunc[T any] func(*Cache[T])
+type CacheOptionFunc[T any] func(*cache[T])
 
 func WithVerbose[T any](v bool) CacheOptionFunc[T] {
-	return func(c *Cache[T]) {
+	return func(c *cache[T]) {
 		c.verbose = v
 	}
 }
 
 func WithExpiration[T any](exp time.Duration) CacheOptionFunc[T] {
-	return func(c *Cache[T]) {
+	return func(c *cache[T]) {
 		c.defExp = exp
 	}
 }
 
-type Cache[T any] struct {
+type cache[T any] struct {
 	defExp time.Duration
 
 	mu struct {
@@ -41,9 +47,9 @@ type Cache[T any] struct {
 	verbose bool
 }
 
-func New[T any](opts ...CacheOptionFunc[T]) *Cache[T] {
+func New[T any](opts ...CacheOptionFunc[T]) Cacher[T] {
 	data := make(map[string]*entry[T])
-	c := &Cache[T]{
+	c := &cache[T]{
 		defExp: defaultExp,
 	}
 
@@ -56,18 +62,14 @@ func New[T any](opts ...CacheOptionFunc[T]) *Cache[T] {
 	return c
 }
 
-func (c *Cache[T]) Set(key string, value T) error {
+func (c *cache[T]) Set(key string, value T) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	if c.contains(key) {
-		return errors.New("key already exists")
-	}
 
 	return c.internalSet(key, value)
 }
 
-func (c *Cache[T]) Get(key string) (T, error) {
+func (c *cache[T]) Get(key string) (T, error) {
 	reset := func(e *entry[T], exp time.Duration) {
 		e.ttl = getTtl(exp)
 	}
@@ -77,19 +79,19 @@ func (c *Cache[T]) Get(key string) (T, error) {
 
 	e, found := c.mu.data[key]
 	if !found {
-		return *new(T), errors.New("key not exist")
+		return *new(T), common.ErrKeyNotFound
 	}
 
 	reset(e, c.defExp)
 	return e.v, nil
 }
 
-func (c *Cache[T]) contains(key string) bool {
+func (c *cache[T]) Has(key string) bool {
 	_, found := c.mu.data[key]
 	return found
 }
 
-func (c *Cache[T]) internalSet(key string, value T) error {
+func (c *cache[T]) internalSet(key string, value T) error {
 	e := &entry[T]{
 		v:   value,
 		ttl: getTtl(c.defExp),
@@ -102,14 +104,14 @@ func getTtl(exp time.Duration) int64 {
 	return time.Now().Add(exp).UnixMicro()
 }
 
-func (c *Cache[T]) runCleaner() {
+func (c *cache[T]) runCleaner() {
 	ticker := time.NewTicker(c.defExp)
 	for range ticker.C {
 		c.clearExpired()
 	}
 }
 
-func (c *Cache[T]) clearExpired() {
+func (c *cache[T]) clearExpired() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

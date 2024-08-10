@@ -2,8 +2,15 @@ package sst
 
 import (
 	"errors"
+	"godb/common"
 	"io"
 )
+
+var (
+	ErrIteratorExhausted = errors.New("iterator exhausted")
+)
+
+var _ common.Iterator = (*SSTableIter)(nil)
 
 type SSTableIter struct {
 	sst     *SST
@@ -14,7 +21,7 @@ type SSTableIter struct {
 }
 
 func (it *SSTableIter) getBlock(i int) (*block, error) {
-	if len(it.sst.idx.off) < i {
+	if len(it.sst.idx.off) <= i {
 		return nil, errNoMoreData
 	}
 
@@ -59,36 +66,43 @@ func NewSSTableIter(sst *SST) (*SSTableIter, error) {
 	return it, nil
 }
 
-func (it *SSTableIter) progress() error {
+func (it *SSTableIter) SeekToFirst() (*common.InternalKey, []byte, error) {
+	return it.Next()
+}
+
+func (it *SSTableIter) progressToNextBlock() error {
 	b, err := it.getBlock(it.index)
 	if err != nil {
 		return err
 	}
 	it.blkIter.blk = b
 	it.blkIter.off = 0
-
-	err = it.blkIter.Next()
-	if err != nil {
-		return err
-	}
 	it.index++
 	return nil
 }
 
-func (it *SSTableIter) Next() error {
-	err := it.blkIter.Next()
+func (it *SSTableIter) Next() (*common.InternalKey, []byte, error) {
+	key, value, err := it.blkIter.Next()
 	if err != nil {
 		if !errors.Is(err, errNoMoreData) {
-			return err
+			return nil, nil, err
 		}
-		if err := it.progress(); err != nil {
-			return err
+		if err := it.progressToNextBlock(); err != nil {
+			return nil, nil, ErrIteratorExhausted
+		}
+		key, value, err = it.blkIter.Next()
+		if err != nil {
+			return nil, nil, ErrIteratorExhausted
 		}
 	}
-
+	return key, value, nil
 }
 
-func (it *SSTableIter) Key() []byte {
+func (it *SSTableIter) Valid() bool {
+	return it.blkIter.Valid()
+}
+
+func (it *SSTableIter) Key() *common.InternalKey {
 	return it.blkIter.Key()
 }
 

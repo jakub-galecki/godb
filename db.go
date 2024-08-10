@@ -38,7 +38,7 @@ type db struct {
 	levels     []*level
 	wl         *wal.Manager
 	wlw        wal.Writer
-	blockCache *cache.Cache[[]byte]
+	blockCache cache.Cacher[[]byte]
 	mutex      sync.Mutex
 	opts       dbOpts
 	manifest   *Manifest
@@ -146,7 +146,7 @@ func (l *db) recoverWal(wals []wal.WalLogNum) (err error) {
 		mem := memtable.New(uint64(id))
 		err = wal.Iter(it, func(raw []byte) error {
 			b := DecodeBatch(raw)
-            defer b.release()
+			defer b.release()
 			return applyToMemtable(mem, b)
 		})
 		if err != nil {

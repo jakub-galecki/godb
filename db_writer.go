@@ -44,14 +44,14 @@ func applyToMemtable(mem *memtable.MemTable, batch *Batch) error {
 	for {
 		op, key, val := it.Next()
 		if op == 0 && key == nil && val == nil {
-			// iteratior exhausted
+			// batch iterator exhausted
 			break
 		}
 		switch op {
 		case common.SET:
-			mem.Set(key, val)
+			return mem.Set(common.NewInternalKey(key, 0, common.SET), val)
 		case common.DELETE:
-			mem.Delete(key)
+			return mem.Delete(common.NewInternalKey(key, 0, common.DELETE))
 		default:
 			panic("unknown db operation")
 		}

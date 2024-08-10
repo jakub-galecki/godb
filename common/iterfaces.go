@@ -11,3 +11,10 @@ type InnerStorageIterator interface {
 	HasNext() bool
 	Next() (*InternalKey, []byte)
 }
+
+type Iterator interface {
+	Next() (*InternalKey, []byte, error)
+	Valid() bool
+	Key() *InternalKey
+	Value() []byte
+}

@@ -15,13 +15,13 @@ type level struct {
 	id int
 	//min, max []byte
 	ssts       []*sst.SST
-	blockCache *cache.Cache[[]byte]
+	blockCache cache.Cacher[[]byte]
 	dir        string
 	curId      int
 	logger     *log.Logger
 }
 
-func newLevel(id int, dir string, cache *cache.Cache[[]byte], logger *log.Logger) *level {
+func newLevel(id int, dir string, cache cache.Cacher[[]byte], logger *log.Logger) *level {
 	lvl := level{
 		id:         id,
 		blockCache: cache,
@@ -68,13 +68,8 @@ func (l *level) AddMemtable(d *db, mem *memtable.MemTable) (*sst.SST, error) {
 //}
 
 func (l *level) loadSSTs(ssts []string) error {
-	getFile := func(name string) string {
-		return path.Join(l.dir, name)
-	}
-
 	for _, ssId := range ssts {
-		p := getFile(ssId)
-		ss, err := sst.Open(p, ssId, l.logger)
+		ss, err := sst.Open(l.dir, ssId, l.logger)
 		if err != nil {
 			return err
 		}

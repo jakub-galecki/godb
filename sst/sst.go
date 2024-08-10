@@ -16,7 +16,7 @@ type SST struct {
 	fref  *os.File
 
 	meta       tableMeta
-	blockCache *cache.Cache[[]byte]
+	blockCache cache.Cacher[[]byte]
 
 	logger *log.Logger
 }

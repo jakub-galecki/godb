@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func WriteMemTable(logger *log.Logger, mem *memtable.MemTable, path string, cache *cache.Cache[[]byte], sstId string) (*SST, error) {
+func WriteMemTable(logger *log.Logger, mem *memtable.MemTable, path string, cache cache.Cacher[[]byte], sstId string) (*SST, error) {
 	it := mem.Iterator()
 	start := time.Now()
 	// trace.Debug().Int("MEM SIZE", mem.GetSize()).Msg("Flushing memtable to SST")

@@ -14,6 +14,7 @@ type InnerStorageIterator interface {
 
 type Iterator interface {
 	Next() (*InternalKey, []byte, error)
+	SeekToFirst(*InternalKey, []byte, error)
 	Valid() bool
 	Key() *InternalKey
 	Value() []byte

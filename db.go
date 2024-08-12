@@ -43,6 +43,7 @@ type db struct {
 	opts       dbOpts
 	manifest   *Manifest
 	cleaner    *cleaner
+	env        *dbEnv
 }
 
 func Open(table string, opts ...DbOpt) (*db, error) {
@@ -70,6 +71,7 @@ func Open(table string, opts ...DbOpt) (*db, error) {
 			panic(err)
 		}
 	}
+	d.env = envFromManifest(d.manifest)
 	go d.drainSink()
 	return &d, nil
 }

@@ -1,4 +1,4 @@
-package sst
+package compaction
 
 import (
 	"container/heap"
@@ -22,7 +22,6 @@ func (h *HeapIter) Push(x any) {
 	it := x.(common.Iterator)
 	*h = append(*h, it)
 }
-
 func (h *HeapIter) Pop() any {
 	ol := *h
 	n := len(*h)

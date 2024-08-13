@@ -30,13 +30,6 @@ type Logger struct {
 	f io.WriteCloser
 }
 
-//	var loggerPool = sync.Pool{
-//		New: func() any {
-//			return new(zerolog.Logger)
-//		},
-//	}
-//
-// todo: add  options with log level
 func NewLogger(name string, t LoggerType) *Logger {
 	jsonLogger := func() *Logger {
 		var (

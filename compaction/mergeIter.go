@@ -15,9 +15,11 @@ type ikey = *common.InternalKey
 // min heap to maintaint sst property, keys can be overlapping
 type HeapIter []common.Iterator
 
-func (h HeapIter) Len() int           { return len(h) }
-func (h HeapIter) Less(i, j int) bool { return h[i].Key().Compare(h[j].Key()) < 0 }
-func (h HeapIter) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h HeapIter) Len() int { return len(h) }
+func (h HeapIter) Less(i, j int) bool {
+	return h[i].Key().Compare(h[j].Key()) < 0
+}
+func (h HeapIter) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 func (h *HeapIter) Push(x any) {
 	it := x.(common.Iterator)
 	*h = append(*h, it)
@@ -31,8 +33,7 @@ func (h *HeapIter) Pop() any {
 	return item
 }
 
-// Overlappinig iterator is different from other iterators in the sense that
-// keys from underlying iterators can be overlapping, so we must always pick the newest one
+// In MergeIter keys from underlying iterators can be overlapping, so we must always pick the smallest one
 
 type MergeIter struct {
 	initIters []common.Iterator
@@ -44,8 +45,10 @@ type MergeIter struct {
 func NewMergeIter(iters ...common.Iterator) (*MergeIter, error) {
 	mi := &MergeIter{}
 	// assume that all iters are valid
-	mi.heap = make(HeapIter, len(iters))
-	mi.initIters = make([]common.Iterator, len(iters))
+
+	mi.heap = make(HeapIter, 0, len(iters))
+	mi.initIters = make([]common.Iterator, 0, len(iters))
+
 	if len(iters) == 0 {
 		return nil, ErrEmptyIters
 	}
@@ -65,10 +68,13 @@ func NewMergeIter(iters ...common.Iterator) (*MergeIter, error) {
 }
 
 func (mi *MergeIter) Next() (ikey, []byte, error) {
+	if len(mi.heap) == 0 {
+		return nil, nil, common.ErrIteratorExhausted
+	}
 	cur := mi.heap[0]
 	// check that other iters dont have the same key
-	for i, it := range mi.heap {
-		if cur.Key().Equal(it.Key()) {
+	for i, it := range mi.heap[1:] {
+		if cur.Key().SoftEqual(it.Key()) {
 			_, _, err := it.Next()
 			if err != nil {
 				heap.Remove(&mi.heap, i)
@@ -78,11 +84,15 @@ func (mi *MergeIter) Next() (ikey, []byte, error) {
 			heap.Remove(&mi.heap, i)
 		}
 	}
-	_, _, err := cur.Next()
+	heap.Fix(&mi.heap, 0)
+	_, _, err := mi.heap[0].Next()
 	if err != nil {
 		heap.Remove(&mi.heap, 0)
 	}
 	heap.Fix(&mi.heap, 0)
+	if len(mi.heap) == 0 {
+		return nil, nil, common.ErrIteratorExhausted
+	}
 	for !mi.heap[0].Valid() {
 		heap.Remove(&mi.heap, 0)
 	}

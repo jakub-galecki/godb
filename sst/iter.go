@@ -6,10 +6,6 @@ import (
 	"io"
 )
 
-var (
-	ErrIteratorExhausted = errors.New("iterator exhausted")
-)
-
 var _ common.Iterator = (*SSTableIter)(nil)
 
 type SSTableIter struct {
@@ -88,24 +84,33 @@ func (it *SSTableIter) Next() (*common.InternalKey, []byte, error) {
 			return nil, nil, err
 		}
 		if err := it.progressToNextBlock(); err != nil {
-			return nil, nil, ErrIteratorExhausted
+			return nil, nil, common.ErrIteratorExhausted
 		}
 		key, value, err = it.blkIter.Next()
 		if err != nil {
-			return nil, nil, ErrIteratorExhausted
+			return nil, nil, common.ErrIteratorExhausted
 		}
 	}
 	return key, value, nil
 }
 
 func (it *SSTableIter) Valid() bool {
+	if it.blkIter == nil {
+		return false
+	}
 	return it.blkIter.Valid()
 }
 
 func (it *SSTableIter) Key() *common.InternalKey {
+	if it.blkIter == nil {
+		return nil
+	}
 	return it.blkIter.Key()
 }
 
 func (it *SSTableIter) Value() []byte {
+	if it.blkIter == nil {
+		return nil
+	}
 	return it.blkIter.Value()
 }

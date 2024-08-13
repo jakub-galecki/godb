@@ -34,10 +34,6 @@ func newBatch() *Batch {
 	return b
 }
 
-func (b *Batch) setSeqNum(seqNum uint64) {
-	b.seqNum = seqNum
-}
-
 func (b *Batch) release() {
 	batchPool.Put(b)
 }
@@ -102,6 +98,10 @@ func (b *Batch) decodeHeader(raw []byte) {
 	b.size = binary.LittleEndian.Uint32(header[read:])
 }
 
+func (b *Batch) Size() int {
+	return int(b.size)
+}
+
 func (b *Batch) decode(raw []byte) {
 	b.decodeHeader(raw)
 	b.buf = raw[headerLen:]
@@ -116,33 +116,28 @@ func DecodeBatch(raw []byte) *Batch {
 }
 
 type batchIter struct {
-	off   uint64
-	total uint64
-	buf   []byte
+	off    uint64
+	total  uint64
+	buf    []byte
+	seqNum uint64
 }
 
 func (b *Batch) Iter() *batchIter {
 	return &batchIter{
-		off:   0,
-		total: b.off,
-		buf:   b.buf[:b.off],
+		off:    0,
+		total:  b.off,
+		buf:    b.buf[:b.off],
+		seqNum: b.seqNum,
 	}
 }
 
-/*
-	if b.off == 0 {
-		seqNum, read := binary.Uvarint(b.buf)
-		count := binary.LittleEndian.Uint32(b.buf[read:])
-		b.off += uint64(read + 4) // uint32 size + uint64 size
-		b.size = count
-		b.seqNum = seqNum
-	}
-*/
-func (b *batchIter) Next() (common.DbOp, []byte, []byte) {
+func (b *batchIter) Next() (common.DbOp, uint64, []byte, []byte) {
 	if b.off >= uint64(len(b.buf)) || b.off >= b.total {
-		return 0, nil, nil
+		return 0, 0, nil, nil
 	}
 	op := b.buf[b.off]
+	seq := b.seqNum
+	b.seqNum++
 	if op == common.DELETE {
 		b.off += 1
 		keyLen, read := binary.Uvarint(b.buf[b.off:])
@@ -150,7 +145,7 @@ func (b *batchIter) Next() (common.DbOp, []byte, []byte) {
 		key := make([]byte, keyLen)
 		copy(key, b.buf[b.off:b.off+keyLen])
 		b.off += keyLen
-		return op, key, nil
+		return op, seq, key, nil
 	}
 	b.off += 1
 	keyLen, read := binary.Uvarint(b.buf[b.off:])
@@ -163,5 +158,5 @@ func (b *batchIter) Next() (common.DbOp, []byte, []byte) {
 	value := make([]byte, valueLen)
 	copy(value, b.buf[b.off:b.off+valueLen])
 	b.off += valueLen
-	return op, key, value
+	return op, seq, key, value
 }

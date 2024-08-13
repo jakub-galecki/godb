@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"godb/common"
 	"godb/log"
 	"os"
 	"slices"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_Iter(t *testing.T) {
@@ -49,7 +51,7 @@ func Test_Iter(t *testing.T) {
 		count++
 		key, value, err = it.Next()
 		if err != nil {
-			if errors.Is(err, ErrIteratorExhausted) {
+			if errors.Is(err, common.ErrIteratorExhausted) {
 				break
 			}
 			require.NoError(t, err)

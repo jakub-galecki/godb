@@ -5,10 +5,11 @@ import "errors"
 var TOMBSTONE []byte
 
 var (
-	EndOfIterator       = errors.New("out of records")
-	ErrKeyNotFound      = errors.New("key not found")
-	ErrPathFile         = errors.New("provied path points to a file instead of directory")
-	ErrKeyAlreadyExists = errors.New("key already exists")
+	EndOfIterator        = errors.New("out of records")
+	ErrKeyNotFound       = errors.New("key not found")
+	ErrPathFile          = errors.New("provied path points to a file instead of directory")
+	ErrKeyAlreadyExists  = errors.New("key already exists")
+	ErrIteratorExhausted = errors.New("iterator exhausted")
 )
 
 const (
@@ -25,6 +26,5 @@ type DbOp = uint8
 
 const (
 	SET DbOp = iota
-	GET
 	DELETE
 )

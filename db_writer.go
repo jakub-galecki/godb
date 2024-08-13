@@ -26,14 +26,22 @@ func (l *db) applyBatch(b *Batch) error {
 	if b.committed.Load() {
 		return fmt.Errorf("batch already commited")
 	}
-
-	if err := l.applyToWal(b); err != nil {
+	b.seqNum = l.getSeqNum(b.Size())
+	err := func() error {
+		l.mutex.Lock()
+		defer l.mutex.Unlock()
+		if err := l.applyToWal(b); err != nil {
+			return err
+		}
+		if err := applyToMemtable(l.mem, b); err != nil {
+			return err
+		}
+		return nil
+	}()
+	if err != nil {
 		return err
 	}
 
-	if err := applyToMemtable(l.mem, b); err != nil {
-		return err
-	}
 	// log.Event("applyBatch", start)
 	l.maybeFlush(b.forceFlush)
 	return nil
@@ -42,16 +50,16 @@ func (l *db) applyBatch(b *Batch) error {
 func applyToMemtable(mem *memtable.MemTable, batch *Batch) error {
 	it := batch.Iter()
 	for {
-		op, key, val := it.Next()
+		op, seq, key, val := it.Next()
 		if op == 0 && key == nil && val == nil {
 			// batch iterator exhausted
 			break
 		}
 		switch op {
 		case common.SET:
-			return mem.Set(common.NewInternalKey(key, 0, common.SET), val)
+			_ = mem.Set(common.NewInternalKey(key, seq, common.SET), val)
 		case common.DELETE:
-			return mem.Delete(common.NewInternalKey(key, 0, common.DELETE))
+			_ = mem.Delete(common.NewInternalKey(key, seq, common.DELETE))
 		default:
 			panic("unknown db operation")
 		}

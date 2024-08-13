@@ -20,6 +20,7 @@ func Test_NewBatch(t *testing.T) {
 
 func Test_BatchIter(t *testing.T) {
 	b := newBatch()
+	b.seqNum = 0
 	assert.NotNil(t, b)
 	b.Set([]byte("test0"), []byte("testVal"))
 	b.Set([]byte("test1"), []byte("testVal"))
@@ -31,11 +32,12 @@ func Test_BatchIter(t *testing.T) {
 	assert.NotNil(t, it)
 	i := 0
 	for {
-		op, key, val := it.Next()
+		op, seq, key, val := it.Next()
 		if op == 0 && key == nil && val == nil {
 			require.Equal(t, i, 5)
 			return
 		}
+		assert.Equal(t, uint64(i), seq)
 		if i == 4 {
 			require.Equal(t, op, common.DELETE)
 			require.Equal(t, key, []byte(fmt.Sprintf("test%d", i)))
@@ -64,6 +66,7 @@ func Test_Encode(t *testing.T) {
 func Test_Decode(t *testing.T) {
 	b := newBatch()
 	assert.NotNil(t, b)
+	b.seqNum = 100
 	b.Set([]byte("test0"), []byte("testVal"))
 	b.Set([]byte("test1"), []byte("testVal"))
 	b.Set([]byte("test2"), []byte("testVal"))
@@ -76,16 +79,20 @@ func Test_Decode(t *testing.T) {
 	newB.decode(encoded)
 
 	assert.Equal(t, uint32(5), newB.size)
-	assert.Equal(t, uint64(0), b.seqNum)
+
+	assert.Equal(t, uint64(100), b.seqNum)
+	assert.Equal(t, uint64(100), newB.seqNum)
+
 	it := b.Iter()
 	assert.NotNil(t, it)
 	i := 0
 	for {
-		op, key, val := it.Next()
+		op, seq, key, val := it.Next()
 		if op == 0 && key == nil && val == nil {
 			require.Equal(t, i, 5)
 			return
 		}
+		assert.Equal(t, uint64(i+100), seq)
 		if i == 4 {
 			require.Equal(t, op, common.DELETE)
 			require.Equal(t, key, []byte(fmt.Sprintf("test%d", i)))

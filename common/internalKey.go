@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"cmp"
 	"encoding/binary"
+	"fmt"
 	"math"
 )
 
@@ -24,6 +25,10 @@ const MetaLen = 8
 type InternalKey struct {
 	UserKey []byte
 	Meta    KeyMeta
+}
+
+func (ik *InternalKey) String() string {
+	return fmt.Sprintf("UserKey: %s SeqNum: %d Kind: %d", ik.UserKey, ik.SeqNum(), ik.Kind())
 }
 
 func SearchInternalKey(key []byte) *InternalKey {

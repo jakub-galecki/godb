@@ -36,6 +36,9 @@ func (b *BlockIterator) Next() (*common.InternalKey, []byte, error) {
 }
 
 func (b *BlockIterator) Valid() bool {
+	if b.cure == nil || b.cure.rawKey == nil {
+		return false
+	}
 	return len(b.cure.rawKey.UserKey) > 0 // value maybe nil for tombstone
 }
 

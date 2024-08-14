@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -65,12 +66,7 @@ func Test_SSTableIter(t *testing.T) {
 	mi, err := NewMergeIter(siter0, siter1, siter2)
 	require.NoError(t, err)
 	i := 0
-	for {
-		key, val, err := mi.Next()
-		if err != nil {
-			break
-		}
-		assert.NoError(t, err)
+	for key, val, err := mi.SeekToFirst(); err == nil; key, val, err = mi.Next() {
 		assert.Equal(t, []byte(expectedResults[i].ukey), key.UserKey)
 		assert.Equal(t, uint64(expectedResults[i].seq), key.SeqNum())
 		assert.Equal(t, uint8(expectedResults[i].op), key.Kind())

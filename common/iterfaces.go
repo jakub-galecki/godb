@@ -8,13 +8,14 @@ type InnerStorage interface {
 }
 
 type InnerStorageIterator interface {
-	HasNext() bool
+	Valid() bool
 	Next() (*InternalKey, []byte)
 }
 
 type Iterator interface {
 	Next() (*InternalKey, []byte, error)
-	Valid() bool
 	Key() *InternalKey
+	Valid() bool
 	Value() []byte
+	SeekToFirst() (*InternalKey, []byte, error)
 }

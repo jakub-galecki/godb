@@ -28,3 +28,10 @@ func (s *SST) GetTableMeta() tableMeta {
 func (s *SST) GetId() string {
 	return s.sstId
 }
+
+func (s *SST) GetMin() []byte {
+	if s.idx == nil || len(s.idx.off) == 0 {
+		return nil
+	}
+	return s.idx.off[0].key
+}

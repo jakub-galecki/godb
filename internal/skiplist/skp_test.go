@@ -59,22 +59,22 @@ func Test_Iterator(t *testing.T) {
 		val []byte
 	)
 
-	require.True(t, it.HasNext())
+	require.True(t, it.Valid())
 	key, val = it.Next()
 	require.Equal(t, common.NewInternalKey([]byte("foo.1"), 2, common.SET), key)
 	assert.Equal(t, []byte("bar.3"), val)
 
-	require.True(t, it.HasNext())
+	require.True(t, it.Valid())
 	key, val = it.Next()
 	require.Equal(t, common.NewInternalKey([]byte("foo.1"), 1, common.SET), key)
 	assert.Equal(t, []byte("bar.2"), val)
 
-	require.True(t, it.HasNext())
+	require.True(t, it.Valid())
 	key, val = it.Next()
 	require.Equal(t, common.NewInternalKey([]byte("foo.1"), 0, common.SET), key)
 	assert.Equal(t, []byte("bar.1"), val)
 
-	require.False(t, it.HasNext())
+	require.False(t, it.Valid())
 }
 
 func Benchmark_SkipList(b *testing.B) {

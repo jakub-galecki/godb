@@ -13,7 +13,7 @@ func WriteMemTable(logger *log.Logger, mem *memtable.MemTable, path string, cach
 	// trace.Debug().Int("MEM SIZE", mem.GetSize()).Msg("Flushing memtable to SST")
 
 	sstBuilder := NewBuilder(logger, path, mem.GetSize(), sstId)
-	for it.HasNext() {
+	for it.Valid() {
 		k, v := it.Next()
 		sstBuilder = sstBuilder.Add(k, v)
 	}

@@ -2,9 +2,7 @@ package sst
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
-	"godb/common"
 	"godb/log"
 	"os"
 	"slices"
@@ -39,9 +37,7 @@ func Test_Iter(t *testing.T) {
 	// check that sst is in fact sorted
 	assert.True(t, slices.IsSorted(expected))
 	count := 0
-	key, value, err := it.SeekToFirst()
-	require.NoError(t, err)
-	for it.Valid() {
+	for key, value, err := it.SeekToFirst(); err == nil; key, value, err = it.Next() {
 		assert.NotNil(t, key)
 		assert.NotNil(t, value)
 		expectedKey := fmt.Sprintf("foo.%s", expected[count])
@@ -49,13 +45,6 @@ func Test_Iter(t *testing.T) {
 		require.Equal(t, []byte(expectedKey), key.UserKey)
 		require.Equal(t, []byte(expectedValue), value)
 		count++
-		key, value, err = it.Next()
-		if err != nil {
-			if errors.Is(err, common.ErrIteratorExhausted) {
-				break
-			}
-			require.NoError(t, err)
-		}
 	}
 	assert.Equal(t, 41185, count)
 }

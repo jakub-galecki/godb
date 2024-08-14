@@ -48,22 +48,11 @@ func (it *SSTableIter) getBlock(i int) (*block, error) {
 
 func NewSSTableIter(sst *SST) (*SSTableIter, error) {
 	it := &SSTableIter{
-		blkIter: nil,
+		blkIter: NewBlockIterator(nil),
 		sst:     sst,
 		raw:     make([]byte, BLOCK_SIZE),
 	}
-
-	b, err := it.getBlock(it.index)
-	if err != nil {
-		return nil, err
-	}
-	it.blkIter = NewBlockIterator(b)
-	it.index++
 	return it, nil
-}
-
-func (it *SSTableIter) SeekToFirst() (*common.InternalKey, []byte, error) {
-	return it.Next()
 }
 
 func (it *SSTableIter) progressToNextBlock() error {
@@ -71,8 +60,7 @@ func (it *SSTableIter) progressToNextBlock() error {
 	if err != nil {
 		return err
 	}
-	it.blkIter.blk = b
-	it.blkIter.off = 0
+	it.blkIter.resetWithNewBlock(b)
 	it.index++
 	return nil
 }
@@ -94,13 +82,6 @@ func (it *SSTableIter) Next() (*common.InternalKey, []byte, error) {
 	return key, value, nil
 }
 
-func (it *SSTableIter) Valid() bool {
-	if it.blkIter == nil {
-		return false
-	}
-	return it.blkIter.Valid()
-}
-
 func (it *SSTableIter) Key() *common.InternalKey {
 	if it.blkIter == nil {
 		return nil
@@ -113,4 +94,16 @@ func (it *SSTableIter) Value() []byte {
 		return nil
 	}
 	return it.blkIter.Value()
+}
+
+func (it *SSTableIter) SeekToFirst() (*common.InternalKey, []byte, error) {
+	it.index = 0
+	if err := it.progressToNextBlock(); err != nil {
+		return nil, nil, err
+	}
+	return it.blkIter.SeekToFirst()
+}
+
+func (it *SSTableIter) Valid() bool {
+	return it.blkIter.Valid()
 }

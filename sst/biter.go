@@ -26,12 +26,9 @@ func (b *BlockIterator) Next() (*common.InternalKey, []byte, error) {
 	if uint64(b.off) >= BLOCK_SIZE {
 		return nil, nil, errNoMoreData
 	}
-	n, err := decode(b.blk.buf[b.off:], b.cure)
-	if err != nil {
+	if err := b.moveCursor(); err != nil {
 		return nil, nil, err
 	}
-	b.cure.rawKey = common.DeserializeKey(b.cure.key)
-	b.off += n
 	return b.cure.rawKey, b.cure.value, nil
 }
 
@@ -48,4 +45,27 @@ func (b *BlockIterator) Key() *common.InternalKey {
 
 func (b *BlockIterator) Value() []byte {
 	return b.cure.value
+}
+
+func (b *BlockIterator) moveCursor() error {
+	n, err := decode(b.blk.buf[b.off:], b.cure)
+	if err != nil {
+		return err
+	}
+	b.cure.rawKey = common.DeserializeKey(b.cure.key)
+	b.off += n
+	return nil
+}
+
+func (b *BlockIterator) SeekToFirst() (*common.InternalKey, []byte, error) {
+	b.off = 0
+	if err := b.moveCursor(); err != nil {
+		return nil, nil, err
+	}
+	return b.cure.rawKey, b.cure.value, nil
+}
+
+func (b *BlockIterator) resetWithNewBlock(bb *block) {
+	b.blk = bb
+	b.off = 0
 }

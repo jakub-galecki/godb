@@ -21,12 +21,9 @@ func Test_BlockIterator(t *testing.T) {
 	it := NewBlockIterator(b)
 	require.NotNil(t, it)
 
-	key, value, err := it.Next()
-	require.NoError(t, err)
-	for it.Valid() {
+	for key, value, err := it.SeekToFirst(); err == nil; key, value, err = it.Next() {
 		require.NotNil(t, key)
 		require.NotNil(t, value)
-		key, value, err = it.Next()
 		if errors.Is(err, errNoMoreData) {
 			break
 		}

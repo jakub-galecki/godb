@@ -103,7 +103,7 @@ func (skp *SkipList) NewIter() common.InnerStorageIterator {
 	return &iterator{skp.head}
 }
 
-func (it *iterator) HasNext() bool {
+func (it *iterator) Valid() bool {
 	return it.cur.forwards[0] != nil
 }
 

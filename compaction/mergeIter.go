@@ -40,22 +40,21 @@ type MergeIter struct {
 	heap      HeapIter
 }
 
-// NewMergeIter creates a new MergeIter from given iterators. It assumes that iterators are already pointed to the first
-// element.
+// NewMergeIter creates a new MergeIter from given iterators.
 func NewMergeIter(iters ...common.Iterator) (*MergeIter, error) {
 	mi := &MergeIter{}
 	// assume that all iters are valid
-
 	mi.heap = make(HeapIter, 0, len(iters))
 	mi.initIters = make([]common.Iterator, 0, len(iters))
-
 	if len(iters) == 0 {
 		return nil, ErrEmptyIters
 	}
-
 	for _, it := range iters {
 		if !it.Valid() {
-			continue
+			_, _, err := it.SeekToFirst()
+			if err != nil {
+				continue
+			}
 		}
 		mi.initIters = append(mi.initIters, it)
 		mi.heap = append(mi.heap, it)
@@ -68,36 +67,16 @@ func NewMergeIter(iters ...common.Iterator) (*MergeIter, error) {
 }
 
 func (mi *MergeIter) Next() (ikey, []byte, error) {
-	if len(mi.heap) == 0 {
-		return nil, nil, common.ErrIteratorExhausted
-	}
-	cur := mi.heap[0]
-	// check that other iters dont have the same key
-	for i, it := range mi.heap[1:] {
-		if cur.Key().SoftEqual(it.Key()) {
-			_, _, err := it.Next()
-			if err != nil {
-				heap.Remove(&mi.heap, i)
-			}
-		}
-		if !it.Valid() {
-			heap.Remove(&mi.heap, i)
-		}
-	}
-	heap.Fix(&mi.heap, 0)
 	_, _, err := mi.heap[0].Next()
 	if err != nil {
 		heap.Remove(&mi.heap, 0)
 	}
-	heap.Fix(&mi.heap, 0)
 	if len(mi.heap) == 0 {
 		return nil, nil, common.ErrIteratorExhausted
 	}
-	for !mi.heap[0].Valid() {
-		heap.Remove(&mi.heap, 0)
-	}
-	cur = mi.heap[0]
-	return cur.Key(), cur.Value(), nil
+	heap.Fix(&mi.heap, 0)
+	mi.maybeMoveIters()
+	return mi.heap[0].Key(), mi.heap[0].Value(), nil
 }
 
 func (mi *MergeIter) Key() ikey {
@@ -119,4 +98,30 @@ func (mi *MergeIter) Valid() bool {
 		return false
 	}
 	return len(mi.heap[0].Key().UserKey) > 0
+}
+
+func (mi *MergeIter) SeekToFirst() (*common.InternalKey, []byte, error) {
+	if len(mi.heap) == 0 || mi.heap[0] == nil || !mi.heap[0].Valid() {
+		return nil, nil, common.ErrIteratorExhausted
+	}
+	mi.maybeMoveIters()
+	return mi.heap[0].Key(), mi.heap[0].Value(), nil
+}
+
+// check that other iters dont have the same key
+func (mi *MergeIter) maybeMoveIters() {
+	if len(mi.heap) == 0 {
+		return
+	}
+	cur := mi.heap[0]
+	// check that other iters dont have the same key
+	for i, it := range mi.heap[1:] {
+		if cur.Key().SoftEqual(it.Key()) {
+			_, _, err := it.Next()
+			if err != nil {
+				heap.Remove(&mi.heap, i)
+			}
+			heap.Fix(&mi.heap, i)
+		}
+	}
 }

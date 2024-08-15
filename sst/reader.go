@@ -28,15 +28,14 @@ func Open(dir, sstId string, logger *log.Logger) (*SST, error) {
 
 	fsize := st.Size()
 
-	buf := make([]byte, 48)
-	_, err = f.ReadAt(buf, fsize-48)
+	buf := make([]byte, 64)
+	_, err = f.ReadAt(buf, fsize-64)
 	if err != nil {
 		return nil, err
 	}
 
 	r := bytes.NewReader(buf)
-	tm := tableMeta{}
-
+	tm := newTableMeta()
 	if err := tm.readFrom(r); err != nil {
 		return nil, err
 	}
@@ -48,6 +47,8 @@ func Open(dir, sstId string, logger *log.Logger) (*SST, error) {
 		Uint64("bloom_filter_size", tm.bfSize).
 		Uint64("index_offset", tm.indexOffset).
 		Uint64("index_size", tm.indexSize).
+		Uint64("keys_info_size", tm.keysInfoSize).
+		Uint64("keys_info_offset", tm.keysInfoOffset).
 		Msg("sst metada")
 
 	bfBytes := make([]byte, tm.bfSize)
@@ -66,6 +67,16 @@ func Open(dir, sstId string, logger *log.Logger) (*SST, error) {
 	_, err = f.ReadAt(idxBlock, int64(tm.indexOffset))
 	if err != nil {
 		return nil, err
+	}
+
+	keysInfoBuf := make([]byte, tm.keysInfoSize)
+	_, err = f.ReadAt(keysInfoBuf, int64(tm.keysInfoOffset))
+	if err != nil {
+		return nil, err
+	}
+	n := tm.decodeKeysInfo(keysInfoBuf)
+	if n == 0 {
+		return nil, errors.New("couldn't read keys info")
 	}
 
 	return &SST{

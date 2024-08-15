@@ -14,14 +14,20 @@ func newClener() *cleaner {
 	return c
 }
 
-func (c *cleaner) schedule(files []string) {
+func (c *cleaner) removeAsync(files []string) {
 	c.worker <- files
 }
 
 func (c *cleaner) run() {
 	for files := range c.worker {
 		for _, file := range files {
-			os.Remove(file)
+			_ = os.Remove(file)
 		}
+	}
+}
+
+func (c *cleaner) removeSync(files []string) {
+	for _, file := range files {
+		_ = os.Remove(file)
 	}
 }

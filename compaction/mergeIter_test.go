@@ -11,8 +11,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,16 +28,24 @@ func Test_SSTableIter(t *testing.T) {
 	l := log.NewLogger("iter_test", log.NilLogger)
 	sst0, err := sst.Open("./testdata", "0", l)
 	require.NoError(t, err)
+	require.Equal(t, []byte("foo.0"), sst0.GetMin())
+	require.Equal(t, []byte("foo.9999"), sst0.GetMax())
+
 	siter0, err := sst.NewSSTableIter(sst0)
 	require.NoError(t, err)
 
 	sst1, err := sst.Open("./testdata", "1", l)
 	require.NoError(t, err)
+	require.Equal(t, []byte("foo.41185"), sst1.GetMin())
+	require.Equal(t, []byte("foo.81514"), sst1.GetMax())
 	siter1, err := sst.NewSSTableIter(sst1)
 	require.NoError(t, err)
 
 	sst2, err := sst.Open("./testdata", "2", l)
 	require.NoError(t, err)
+	require.Equal(t, []byte("foo.0"), sst2.GetMin())
+	require.Equal(t, []byte("foo.99999"), sst2.GetMax())
+
 	siter2, err := sst.NewSSTableIter(sst2)
 	require.NoError(t, err)
 
@@ -67,11 +73,11 @@ func Test_SSTableIter(t *testing.T) {
 	require.NoError(t, err)
 	i := 0
 	for key, val, err := mi.SeekToFirst(); err == nil; key, val, err = mi.Next() {
-		assert.Equal(t, []byte(expectedResults[i].ukey), key.UserKey)
-		assert.Equal(t, uint64(expectedResults[i].seq), key.SeqNum())
-		assert.Equal(t, uint8(expectedResults[i].op), key.Kind())
+		require.Equal(t, []byte(expectedResults[i].ukey), key.UserKey)
+		require.Equal(t, uint64(expectedResults[i].seq), key.SeqNum())
+		require.Equal(t, uint8(expectedResults[i].op), key.Kind())
 		if key.Kind() == common.DELETE {
-			assert.Nil(t, val)
+			require.Empty(t, val)
 		}
 		i++
 	}

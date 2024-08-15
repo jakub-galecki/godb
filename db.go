@@ -119,7 +119,21 @@ func (l *db) recover() (err error) {
 			i++
 		}
 	}
-	l.cleaner.schedule(toDel)
+
+	// remove sst files that were not flushed completly
+	ssts, err := common.ListDir(path.Join(l.opts.path, common.SST_DIR), func(f string) (wal.WalLogNum, bool) {
+		logSeqIndex := strings.IndexByte(f, '.')
+		if logSeqIndex < 0 {
+			return 0, false
+		}
+		return wal.WalLogNumFromString(f[:logSeqIndex])
+	})
+	for _, sstId := range ssts {
+		if uint64(sstId) > l.manifest.LastFlushedFileNumber {
+			toDel = append(toDel, path.Join(l.opts.path, common.SST_DIR, sstId.FileName()))
+		}
+	}
+	l.cleaner.removeSync(toDel)
 	err = l.recoverWal(walss[i:])
 	if err != nil {
 		return err
@@ -224,6 +238,8 @@ func (l *db) loadLevels() (err error) {
 }
 
 func (l *db) Close() error {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 	err := l.manifest.fsync()
 	if err != nil {
 		return err

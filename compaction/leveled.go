@@ -1,5 +1,7 @@
 package compaction
 
+import "godb/sst"
+
 type Options struct {
 	LevelMultiplier      uint
 	MaxBytesForLevelBase uint
@@ -22,4 +24,12 @@ func NewLeveledCompaction(opt *Options) *LeveledCompaction {
 	return &LeveledCompaction{
 		opt: opt,
 	}
+}
+
+func (l *LeveledCompaction) triggerL0Compaction() bool {
+	return false
+}
+
+func (l *LeveledCompaction) compactL0(ssts []*sst.SST) bool {
+	return false
 }

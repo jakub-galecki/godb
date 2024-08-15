@@ -55,3 +55,21 @@ func ListDir[T any](path string, mut func(string) (T, bool)) ([]T, error) {
 	})
 	return files, err
 }
+
+func Min(a, b []byte) []byte {
+	switch c := bytes.Compare(a, b); {
+	case c > 0:
+		return b
+	default:
+		return a
+	}
+}
+
+func Max(a, b []byte) []byte {
+	switch c := bytes.Compare(a, b); {
+	case c > 0:
+		return a
+	default:
+		return b
+	}
+}

@@ -1,15 +1,15 @@
 package sst
 
 import (
-	"bytes"
 	"errors"
+	"godb/common"
 )
 
 var errNoSpaceInBlock = errors.New("no space in current block")
 
 type blockBuilder struct {
-	cur *block
-	min []byte
+	cur      *block
+	min, max []byte
 }
 
 func newBlockBuilder() *blockBuilder {
@@ -19,24 +19,14 @@ func newBlockBuilder() *blockBuilder {
 	return bb
 }
 
-func (b *blockBuilder) updateMin(key []byte) {
-	var (
-		min []byte
-	)
-
-	if len(b.min) == 0 {
+func (b *blockBuilder) updateMinMax(key []byte) {
+	if len(b.min) == 0 && len(b.max) == 0 {
 		b.min = key
+		b.max = key
 		return
 	}
-
-	switch c := bytes.Compare(key, b.min); {
-	case c > 0, c == 0:
-		min = b.min
-	default:
-		min = key
-	}
-
-	b.min = min
+	b.min = common.Min(b.min, key)
+	b.max = common.Max(b.max, key)
 }
 
 func (b *blockBuilder) add(e *entry) error {
@@ -48,7 +38,7 @@ func (b *blockBuilder) add(e *entry) error {
 	if err != nil {
 		return err
 	}
-	b.updateMin(e.rawKey.UserKey)
+	b.updateMinMax(e.rawKey.UserKey)
 	return nil
 }
 
@@ -56,13 +46,14 @@ func (b *blockBuilder) hasSpace(additionalSize uint64) bool {
 	return b.cur.getSize()+additionalSize <= BLOCK_SIZE
 }
 
-func (b *blockBuilder) finish() (*block, []byte) {
-	return b.cur, b.min
+func (b *blockBuilder) finish() (*block, []byte, []byte) {
+	return b.cur, b.min, b.max
 }
 
-func (b *blockBuilder) rotateBlock() (*block, []byte) {
-	res, min := b.finish()
+func (b *blockBuilder) rotateBlock() (*block, []byte, []byte) {
+	res, min, max := b.finish()
 	b.cur = newBlock()
 	b.min = nil
-	return res, min
+	b.max = nil
+	return res, min, max
 }

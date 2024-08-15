@@ -19,15 +19,16 @@ type Builder interface {
 }
 
 type builder struct {
-	curBB  *blockBuilder
-	offset uint64
-	size   uint64
-	dir    string
-	file   vfs.VFS[block]
-	bf     *bloom.BloomFilter
-	index  *indexBuilder
-	sstId  string
-	logger *log.Logger
+	curBB    *blockBuilder
+	offset   uint64
+	size     uint64
+	dir      string
+	file     vfs.VFS[block]
+	bf       *bloom.BloomFilter
+	index    *indexBuilder
+	sstId    string
+	logger   *log.Logger
+	min, max []byte
 }
 
 func NewBuilder(logger *log.Logger, dir string, n uint64, id string) Builder {
@@ -51,8 +52,8 @@ func (bdr *builder) Add(key *common.InternalKey, value []byte) Builder {
 		panic(err)
 	}
 	if errors.Is(err, errNoSpaceInBlock) {
-		toFlush, minVal := bdr.curBB.rotateBlock()
-		bdr.flushBlock(toFlush, minVal)
+		toFlush, mink, maxk := bdr.curBB.rotateBlock()
+		bdr.flushBlock(toFlush, mink, maxk)
 		if err := bdr.curBB.add(e); err != nil {
 			// we just created new block, so there should be not errNoSpaceInBlock
 			panic(err)
@@ -64,13 +65,13 @@ func (bdr *builder) Add(key *common.InternalKey, value []byte) Builder {
 
 func (bdr *builder) Finish() *SST {
 	var (
-		meta  = tableMeta{}
+		meta  = newTableMeta()
 		start = time.Now()
 	)
 
 	if bdr.curBB.cur.getSize() > 0 {
-		b, min := bdr.curBB.finish()
-		bdr.flushBlock(b, min)
+		b, mink, maxk := bdr.curBB.finish()
+		bdr.flushBlock(b, mink, maxk)
 	}
 
 	// data info
@@ -97,6 +98,14 @@ func (bdr *builder) Finish() *SST {
 
 	meta.indexSize = uint64(n)
 	bdr.offset += uint64(n)
+
+	meta.keysInfoOffset = bdr.offset
+	meta.initKeysInfo(bdr.min, bdr.max)
+	n, err = meta.encodeKeysInfo(bdr.file)
+	if err != nil {
+		panic(err)
+	}
+	meta.keysInfoSize = uint64(n)
 
 	if err := meta.writeTo(bdr.file); err != nil {
 		panic(err)
@@ -134,7 +143,8 @@ func (bdr *builder) addIndex(minKey []byte) {
 	}
 }
 
-func (bdr *builder) flushBlock(b *block, minKey []byte) {
+func (bdr *builder) flushBlock(b *block, minKey, maxKey []byte) {
+	bdr.updateMinMax(minKey, maxKey)
 	n, err := bdr.file.Write(b.buf)
 	bdr.addIndex(minKey)
 	bdr.offset += uint64(n)
@@ -142,4 +152,14 @@ func (bdr *builder) flushBlock(b *block, minKey []byte) {
 	if err != nil {
 		bdr.logger.Error().Err(err).Msg("error while writing block to disk")
 	}
+}
+
+func (bdr *builder) updateMinMax(minKey, maxKey []byte) {
+	if len(bdr.min) == 0 || len(bdr.max) == 0 {
+		bdr.min = minKey
+		bdr.max = maxKey
+		return
+	}
+	bdr.min = common.Min(bdr.min, minKey)
+	bdr.max = common.Max(bdr.max, maxKey)
 }

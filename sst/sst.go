@@ -15,13 +15,13 @@ type SST struct {
 	idx   *index
 	fref  *os.File
 
-	meta       tableMeta
+	meta       *tableMeta
 	blockCache cache.Cacher[[]byte]
 
 	logger *log.Logger
 }
 
-func (s *SST) GetTableMeta() tableMeta {
+func (s *SST) GetTableMeta() *tableMeta {
 	return s.meta
 }
 
@@ -30,8 +30,14 @@ func (s *SST) GetId() string {
 }
 
 func (s *SST) GetMin() []byte {
-	if s.idx == nil || len(s.idx.off) == 0 {
+	if s.meta == nil {
 		return nil
 	}
-	return s.idx.off[0].key
+	return s.meta.min
+}
+func (s *SST) GetMax() []byte {
+	if s.meta == nil {
+		return nil
+	}
+	return s.meta.max
 }

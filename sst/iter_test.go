@@ -17,6 +17,9 @@ func Test_Iter(t *testing.T) {
 	sst, err := Open("./testdata/", "0", l)
 	require.NoError(t, err)
 
+	require.Equal(t, []byte("foo.0"), sst.GetMin())
+	require.Equal(t, []byte("foo.9999"), sst.GetMax())
+
 	it, err := NewSSTableIter(sst)
 	require.NoError(t, err)
 

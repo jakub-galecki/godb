@@ -1,4 +1,4 @@
-module godb
+module github.com/jakub-galecki/godb
 
 go 1.21
 

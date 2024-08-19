@@ -1,10 +1,11 @@
-package main
+package godb
 
 import (
 	"encoding/binary"
-	"godb/common"
 	"sync"
 	"sync/atomic"
+
+	"godb/common"
 )
 
 var batchPool = sync.Pool{New: func() interface{} { return new(Batch) }}

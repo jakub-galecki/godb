@@ -1,4 +1,4 @@
-package main
+package godb
 
 func (l *db) Get(key []byte) ([]byte, bool) {
 	value, found := l.mem.Get(key)

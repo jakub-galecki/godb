@@ -2,7 +2,7 @@ package cache
 
 import (
 	"github.com/stretchr/testify/assert"
-	"godb/common"
+	"github.com/jakub-galecki/godb/common"
 	"strconv"
 	"testing"
 	"time"

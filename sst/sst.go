@@ -5,8 +5,8 @@ import (
 
 	"github.com/bits-and-blooms/bloom/v3"
 
-	"godb/internal/cache"
-	"godb/log"
+	"github.com/jakub-galecki/godb/internal/cache"
+	"github.com/jakub-galecki/godb/log"
 )
 
 type SST struct {

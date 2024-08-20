@@ -3,7 +3,7 @@ package sst
 import (
 	"bufio"
 	"fmt"
-	"godb/log"
+	"github.com/jakub-galecki/godb/log"
 	"os"
 	"slices"
 	"testing"

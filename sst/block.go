@@ -3,7 +3,7 @@ package sst
 import (
 	"errors"
 	"fmt"
-	"godb/common"
+	"github.com/jakub-galecki/godb/common"
 	"io"
 )
 

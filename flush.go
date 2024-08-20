@@ -1,10 +1,12 @@
 package godb
 
 import (
-	"godb/common"
-	"godb/memtable"
-	"godb/wal"
 	"time"
+
+	"github.com/jakub-galecki/godb/wal"
+
+	"github.com/jakub-galecki/godb/common"
+	"github.com/jakub-galecki/godb/memtable"
 )
 
 func (l *db) exceededSize() bool {

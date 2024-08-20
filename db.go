@@ -12,12 +12,12 @@ import (
 	"sync"
 	"time"
 
-	"godb/sst"
+	"github.com/jakub-galecki/godb/sst"
 
-	"godb/common"
-	"godb/internal/cache"
-	"godb/memtable"
-	"godb/wal"
+	"github.com/jakub-galecki/godb/common"
+	"github.com/jakub-galecki/godb/internal/cache"
+	"github.com/jakub-galecki/godb/memtable"
+	"github.com/jakub-galecki/godb/wal"
 )
 
 type StorageEngine interface {

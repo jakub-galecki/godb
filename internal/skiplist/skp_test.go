@@ -2,9 +2,10 @@ package skiplist
 
 import (
 	"fmt"
-	"godb/common"
 	"strconv"
 	"testing"
+
+	"github.com/jakub-galecki/godb/common"
 
 	"github.com/stretchr/testify/require"
 

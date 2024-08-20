@@ -4,10 +4,11 @@ import (
 	"container/list"
 	"errors"
 	"fmt"
-	"godb/common"
 	"os"
 	"path"
 	"sync"
+
+	"github.com/jakub-galecki/godb/common"
 )
 
 type Manager struct {

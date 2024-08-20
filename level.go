@@ -2,13 +2,16 @@ package godb
 
 import (
 	"errors"
-	"godb/common"
-	"godb/internal/cache"
-	"godb/log"
-	"godb/memtable"
-	"godb/sst"
 	"path"
 	"strconv"
+
+	"github.com/jakub-galecki/godb/log"
+	"github.com/jakub-galecki/godb/memtable"
+	"github.com/jakub-galecki/godb/sst"
+
+	"github.com/jakub-galecki/godb/internal/cache"
+
+	"github.com/jakub-galecki/godb/common"
 )
 
 type level struct {

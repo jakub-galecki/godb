@@ -2,9 +2,10 @@ package godb
 
 import (
 	"errors"
-	"godb/log"
 	"os"
 	"path"
+
+	"github.com/jakub-galecki/godb/log"
 )
 
 type dbOpts struct {

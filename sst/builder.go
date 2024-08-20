@@ -6,9 +6,9 @@ import (
 	"path"
 	"time"
 
-	"godb/common"
-	"godb/log"
-	"godb/vfs"
+	"github.com/jakub-galecki/godb/common"
+	"github.com/jakub-galecki/godb/log"
+	"github.com/jakub-galecki/godb/vfs"
 
 	"github.com/bits-and-blooms/bloom/v3"
 )

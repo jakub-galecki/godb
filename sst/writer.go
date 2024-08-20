@@ -1,9 +1,9 @@
 package sst
 
 import (
-	"godb/internal/cache"
-	"godb/log"
-	"godb/memtable"
+	"github.com/jakub-galecki/godb/internal/cache"
+	"github.com/jakub-galecki/godb/log"
+	"github.com/jakub-galecki/godb/memtable"
 	"time"
 )
 

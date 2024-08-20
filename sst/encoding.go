@@ -3,7 +3,7 @@ package sst
 import (
 	"encoding/binary"
 	"fmt"
-	"godb/common"
+	"github.com/jakub-galecki/godb/common"
 )
 
 func encode(e *entry, dst []byte) (int, error) {

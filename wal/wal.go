@@ -2,7 +2,7 @@ package wal
 
 import (
 	"fmt"
-	"godb/common"
+	"github.com/jakub-galecki/godb/common"
 	"strconv"
 )
 

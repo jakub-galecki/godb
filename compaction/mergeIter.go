@@ -3,7 +3,7 @@ package compaction
 import (
 	"container/heap"
 	"errors"
-	"godb/common"
+	"github.com/jakub-galecki/godb/common"
 )
 
 var (

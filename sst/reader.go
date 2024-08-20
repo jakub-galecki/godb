@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"godb/common"
-	"godb/log"
 	"io"
 	"os"
 	"path"
 	"strconv"
+
+	"github.com/jakub-galecki/godb/log"
+
+	"github.com/jakub-galecki/godb/common"
 
 	"github.com/bits-and-blooms/bloom/v3"
 )

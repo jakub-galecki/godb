@@ -8,7 +8,8 @@ Implementation based on:
 
 import (
 	"bytes"
-	"godb/common"
+
+	"github.com/jakub-galecki/godb/common"
 )
 
 const (

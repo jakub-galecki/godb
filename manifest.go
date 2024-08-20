@@ -1,12 +1,13 @@
 package godb
 
 import (
-	"godb/common"
 	"io"
 	"os"
 	"path"
 	"sync"
 	"time"
+
+	"github.com/jakub-galecki/godb/common"
 
 	"github.com/tinylib/msgp/msgp"
 )

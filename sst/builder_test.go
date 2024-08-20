@@ -2,12 +2,12 @@ package sst
 
 import (
 	"fmt"
-	"godb/common"
+	"github.com/jakub-galecki/godb/common"
 	"os"
 	"testing"
 
-	"godb/log"
-	"godb/memtable"
+	"github.com/jakub-galecki/godb/log"
+	"github.com/jakub-galecki/godb/memtable"
 
 	"github.com/stretchr/testify/assert"
 )

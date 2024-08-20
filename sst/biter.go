@@ -2,7 +2,8 @@ package sst
 
 import (
 	"errors"
-	"godb/common"
+
+	"github.com/jakub-galecki/godb/common"
 )
 
 var errNoMoreData = errors.New("block has no more data")

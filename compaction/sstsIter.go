@@ -2,8 +2,8 @@ package compaction
 
 import (
 	"errors"
-	"godb/common"
-	"godb/sst"
+	"github.com/jakub-galecki/godb/common"
+	"github.com/jakub-galecki/godb/sst"
 )
 
 var _ common.Iterator = (*SSTablesIter)(nil)

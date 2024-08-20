@@ -5,7 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"godb/common"
+	"github.com/jakub-galecki/godb/common"
 )
 
 var batchPool = sync.Pool{New: func() interface{} { return new(Batch) }}

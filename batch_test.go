@@ -2,8 +2,9 @@ package godb
 
 import (
 	"fmt"
-	"godb/common"
 	"testing"
+
+	"github.com/jakub-galecki/godb/common"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

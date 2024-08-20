@@ -1,8 +1,8 @@
 package memtable
 
 import (
-	"godb/common"
-	"godb/internal/skiplist"
+	"github.com/jakub-galecki/godb/common"
+	"github.com/jakub-galecki/godb/internal/skiplist"
 )
 
 //type MemTable interface {

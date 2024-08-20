@@ -1,6 +1,6 @@
 package compaction
 
-import "godb/sst"
+import "github.com/jakub-galecki/godb/sst"
 
 type Options struct {
 	LevelMultiplier      uint

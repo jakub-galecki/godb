@@ -2,7 +2,7 @@ package sst
 
 import (
 	"errors"
-	"godb/common"
+	"github.com/jakub-galecki/godb/common"
 )
 
 var errNoSpaceInBlock = errors.New("no space in current block")

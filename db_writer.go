@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"godb/common"
-	"godb/memtable"
+	"github.com/jakub-galecki/godb/common"
+	"github.com/jakub-galecki/godb/memtable"
 )
 
 func (l *db) Set(key, value []byte) error {

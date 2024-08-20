@@ -2,10 +2,11 @@ package log
 
 import (
 	"fmt"
-	"godb/common"
 	"io"
 	"os"
 	"time"
+
+	"github.com/jakub-galecki/godb/common"
 
 	"github.com/rs/zerolog"
 )

@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"godb/common"
+	"github.com/jakub-galecki/godb/common"
 	"sync"
 	"time"
 )

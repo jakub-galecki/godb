@@ -10,19 +10,17 @@ import (
 
 func (l *db) Set(key, value []byte) error {
 	batch := newBatch().Set(key, value)
-	defer batch.release()
 	return l.applyBatch(batch)
 }
 
 func (l *db) Delete(key []byte) error {
 	batch := newBatch().Delete(key)
-	defer batch.release()
 	return l.applyBatch(batch)
 }
 
 func (l *db) applyBatch(b *Batch) error {
 	// start := time.Now()
-
+	defer b.release()
 	if b.committed.Load() {
 		return fmt.Errorf("batch already commited")
 	}

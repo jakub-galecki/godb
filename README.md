@@ -1,7 +1,8 @@
 # godb
 
+### Instalation 
+
 ### Requirements
-1. https://taskfile.dev/installation
 
 
 ### Compaction

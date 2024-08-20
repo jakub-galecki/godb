@@ -46,13 +46,13 @@ type db struct {
 	cleaner    *cleaner
 }
 
-func Open(table string, opts ...DbOpt) (*db, error) {
-	dbOpts := defaultOpts(table, opts)
+func Open(name string, opts ...DbOpt) (*db, error) {
+	dbOpts := defaultOpts(name, opts)
 	if err := dbOpts.validate(); err != nil {
 		return nil, err
 	}
 	d := db{
-		id:         string(sha256.New().Sum([]byte(table))),
+		id:         string(sha256.New().Sum([]byte(name))),
 		sink:       make([]*memtable.MemTable, 0),
 		blockCache: cache.New(cache.WithVerbose[[]byte](true)),
 		opts:       dbOpts,
@@ -115,22 +115,8 @@ func (l *db) recover() (err error) {
 	i := 0
 	for j := 0; j < len(walss); j++ {
 		if uint64(walss[j]) <= l.manifest.LastFlushedFileNumber {
-			toDel = append(toDel, path.Join(l.opts.path, common.WAL, walss[j].FileName())) // SST
+			toDel = append(toDel, path.Join(l.opts.path, common.WAL, walss[j].FileName()))
 			i++
-		}
-	}
-
-	// remove sst files that were not flushed completly
-	ssts, err := common.ListDir(path.Join(l.opts.path, common.SST_DIR), func(f string) (wal.WalLogNum, bool) {
-		logSeqIndex := strings.IndexByte(f, '.')
-		if logSeqIndex < 0 {
-			return 0, false
-		}
-		return wal.WalLogNumFromString(f[:logSeqIndex])
-	})
-	for _, sstId := range ssts {
-		if uint64(sstId) > l.manifest.LastFlushedFileNumber {
-			toDel = append(toDel, path.Join(l.opts.path, common.SST_DIR, sstId.FileName()))
 		}
 	}
 	l.cleaner.removeSync(toDel)

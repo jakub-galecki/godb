@@ -1,6 +1,7 @@
 package sst
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"path"
@@ -29,13 +30,13 @@ type builder struct {
 	sstId    string
 	logger   *log.Logger
 	min, max []byte
+	buf      bytes.Buffer
 }
 
 func NewBuilder(logger *log.Logger, dir string, n uint64, id string) Builder {
 	bdr := &builder{
 		offset: 0,
 		dir:    dir,
-		file:   vfs.NewVFS[block](dir, id+".db", F_FLAGS, F_PERMISSION),
 		index:  newBuilderIndex(),
 		bf:     bloom.NewWithEstimates(uint(n), 0.01),
 		curBB:  newBlockBuilder(),
@@ -74,10 +75,16 @@ func (bdr *builder) Finish() *SST {
 		bdr.flushBlock(b, mink, maxk)
 	}
 
+	// require that the file is empty
+	bdr.file = vfs.NewVFS[block](bdr.dir, bdr.sstId+".db", F_FLAGS, F_PERMISSION)
 	// data info
 	meta.dataOffset = 0
-	meta.dataSize = bdr.size
-
+	writtenData, err := bdr.buf.WriteTo(bdr.file)
+	if err != nil {
+		panic(err)
+	}
+	meta.dataSize = uint64(writtenData)
+	bdr.offset = uint64(writtenData)
 	bfSize, err := bdr.bf.WriteTo(bdr.file)
 	//logger.Debugf("SST::FINISH bfsize: %d", bfSize)
 	if err != nil {
@@ -145,7 +152,7 @@ func (bdr *builder) addIndex(minKey []byte) {
 
 func (bdr *builder) flushBlock(b *block, minKey, maxKey []byte) {
 	bdr.updateMinMax(minKey, maxKey)
-	n, err := bdr.file.Write(b.buf)
+	n, err := bdr.buf.Write(b.buf)
 	bdr.addIndex(minKey)
 	bdr.offset += uint64(n)
 	bdr.size += uint64(n)

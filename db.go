@@ -170,6 +170,7 @@ func (l *db) recoverWal(wals []wal.WalLogNum) (err error) {
 		if err != nil {
 			return err
 		}
+		return nil
 	}
 	for i := 0; i <= len(wals)-2; i++ {
 		mem, err := getMem(wals[i])

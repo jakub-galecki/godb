@@ -20,6 +20,9 @@ To install the package simply run
 go get -u github.com/jakub-galecki/godb
 ```
 
+### Iterators 
+* https://github.com/facebook/rocksdb/wiki/Iterator-Implementation
+
 ### Compaction
 
 * https://www.youtube.com/watch?v=6jF2xWTi2hs

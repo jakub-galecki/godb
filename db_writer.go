@@ -9,16 +9,16 @@ import (
 )
 
 func (l *db) Set(key, value []byte) error {
-	batch := newBatch().Set(key, value)
-	return l.applyBatch(batch)
+	batch := NewBatch().Set(key, value)
+	return l.ApplyBatch(batch)
 }
 
 func (l *db) Delete(key []byte) error {
-	batch := newBatch().Delete(key)
-	return l.applyBatch(batch)
+	batch := NewBatch().Delete(key)
+	return l.ApplyBatch(batch)
 }
 
-func (l *db) applyBatch(b *Batch) error {
+func (l *db) ApplyBatch(b *Batch) error {
 	// start := time.Now()
 	defer b.release()
 	if b.committed.Load() {
@@ -39,7 +39,6 @@ func (l *db) applyBatch(b *Batch) error {
 	if err != nil {
 		return err
 	}
-
 	// log.Event("applyBatch", start)
 	l.maybeFlush(b.forceFlush)
 	return nil

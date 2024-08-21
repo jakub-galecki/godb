@@ -24,7 +24,7 @@ type Batch struct {
 	off        uint64
 }
 
-func newBatch() *Batch {
+func NewBatch() *Batch {
 	b := batchPool.Get().(*Batch)
 	b.committed = atomic.Bool{}
 	clear(b.buf)
@@ -110,7 +110,7 @@ func (b *Batch) decode(raw []byte) {
 }
 
 func DecodeBatch(raw []byte) *Batch {
-	b := newBatch()
+	b := NewBatch()
 	b.decode(raw)
 	b.off = uint64(len(b.buf))
 	return b

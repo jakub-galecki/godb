@@ -31,5 +31,33 @@ func main() {
 		return
 	}
 	stdLog.Printf("value: %s", val)
+
+	b := godb.NewBatch().
+		Set([]byte("b_key1"), []byte("b_value1")).
+		Set([]byte("b_key2"), []byte("b_value2")).
+		Set([]byte("b_key3"), []byte("b_value3"))
+
+	// batch should have seqNum equal to 0 as it is assigned by ApplyBatch function
+	it := b.Iter()
+	for {
+		op, seq, key, val := it.Next()
+		if op == 0 && key == nil && val == nil {
+			// batch iterator exhausted
+			break
+		}
+		stdLog.Printf("op: %d, seqNum: %d, key: %s, value: %s\n", op, seq, key, val)
+	}
+	err = db.ApplyBatch(b)
+	if err != nil {
+		stdLog.Panic(err)
+	}
+	// get value that was set in batch
+	val, found = db.Get([]byte("b_key2"))
+	if !found {
+		stdLog.Println("batch key not found")
+		return
+	}
+	stdLog.Printf("batch value: %s", val)
+
 	cleanup("/tmp/test")
 }

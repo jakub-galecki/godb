@@ -11,7 +11,7 @@ import (
 )
 
 func Test_NewBatch(t *testing.T) {
-	b := newBatch()
+	b := NewBatch()
 	assert.NotNil(t, b)
 	b.Set([]byte("test0"), []byte("testVal"))
 	b.Set([]byte("test1"), []byte("testVal"))
@@ -20,7 +20,7 @@ func Test_NewBatch(t *testing.T) {
 }
 
 func Test_BatchIter(t *testing.T) {
-	b := newBatch()
+	b := NewBatch()
 	b.seqNum = 0
 	assert.NotNil(t, b)
 	b.Set([]byte("test0"), []byte("testVal"))
@@ -53,7 +53,7 @@ func Test_BatchIter(t *testing.T) {
 }
 
 func Test_Encode(t *testing.T) {
-	b := newBatch()
+	b := NewBatch()
 	assert.NotNil(t, b)
 	b.Set([]byte("test0"), []byte("testVal"))
 	b.Set([]byte("test1"), []byte("testVal"))
@@ -65,7 +65,7 @@ func Test_Encode(t *testing.T) {
 }
 
 func Test_Decode(t *testing.T) {
-	b := newBatch()
+	b := NewBatch()
 	assert.NotNil(t, b)
 	b.seqNum = 100
 	b.Set([]byte("test0"), []byte("testVal"))
@@ -76,7 +76,7 @@ func Test_Decode(t *testing.T) {
 
 	encoded := b.encode()
 
-	newB := newBatch()
+	newB := NewBatch()
 	newB.decode(encoded)
 
 	assert.Equal(t, uint32(5), newB.size)

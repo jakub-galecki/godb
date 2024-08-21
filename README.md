@@ -1,9 +1,24 @@
 # godb
 
+Implementation inspired by:
+* https://github.com/facebook/rocksdb
+* https://github.com/cockroachdb/pebble 
+* https://github.com/google/leveldb
+
+### Running the source code 
+
+To run the source code firt clone this repository. After that run `go mod tidy` to install all required dependecies. 
+
+To run all unit tests with their coverage run command `./test.sh`
+
+There is also an example of working with database in the directory called `example`. To run the example, `cd` into example directory and run `go run main.go`.
+
 ### Instalation 
 
-### Requirements
-
+To install the package simply run 
+```
+go get -u github.com/jakub-galecki/godb
+```
 
 ### Compaction
 

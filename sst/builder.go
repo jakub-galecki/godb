@@ -133,6 +133,7 @@ func (bdr *builder) Finish() *SST {
 		// trace.Error().Err(err).Msg("opeing file for read after SST builder finish")
 		panic(err)
 	}
+	st, _ := fref.Stat()
 	bdr.logger.Event("sstBuilder.Finish", start)
 	return &SST{
 		meta:   meta,
@@ -141,6 +142,7 @@ func (bdr *builder) Finish() *SST {
 		fref:   fref,
 		sstId:  bdr.sstId,
 		logger: bdr.logger,
+		fsz:    st.Size(),
 	}
 }
 

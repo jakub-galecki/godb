@@ -17,6 +17,7 @@ type SST struct {
 
 	meta       *tableMeta
 	blockCache cache.Cacher[[]byte]
+	fsz        int64
 
 	logger *log.Logger
 }
@@ -40,4 +41,8 @@ func (s *SST) GetMax() []byte {
 		return nil
 	}
 	return s.meta.max
+}
+
+func (s *SST) GetFileSize() int64 {
+	return s.fsz
 }

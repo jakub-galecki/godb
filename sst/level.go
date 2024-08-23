@@ -2,16 +2,11 @@ package sst
 
 import (
 	"errors"
-	"path"
 	"strconv"
 
+	"github.com/jakub-galecki/godb/internal/cache"
 	"github.com/jakub-galecki/godb/log"
 	"github.com/jakub-galecki/godb/memtable"
-	"github.com/jakub-galecki/godb/sst"
-
-	"github.com/jakub-galecki/godb/internal/cache"
-
-	"github.com/jakub-galecki/godb/common"
 )
 
 type Level struct {
@@ -87,4 +82,8 @@ func (l *Level) GetDir() string {
 
 func (l *Level) GetId() int {
 	return l.id
+}
+
+func (l *Level) GetOldest() *SST {
+	return l.ssts[len(l.ssts)-1]
 }

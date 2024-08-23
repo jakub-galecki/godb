@@ -42,7 +42,7 @@ func defaultOpts(table string, opts []DbOpt) dbOpts {
 	res := dbOpts{
 		table:   table,
 		path:    os.TempDir(),
-		sstSize: 1024,
+		sstSize: 4 * (1 << 20),
 	}
 	for _, fn := range opts {
 		fn(&res)

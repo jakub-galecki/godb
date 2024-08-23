@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jakub-galecki/godb/compaction"
 	"github.com/jakub-galecki/godb/sst"
 
 	"github.com/jakub-galecki/godb/common"
@@ -44,6 +45,7 @@ type db struct {
 	opts       dbOpts
 	manifest   *Manifest
 	cleaner    *cleaner
+	compaction *compaction.LeveledCompaction
 }
 
 func Open(name string, opts ...DbOpt) (*db, error) {
@@ -57,6 +59,7 @@ func Open(name string, opts ...DbOpt) (*db, error) {
 		blockCache: cache.New(cache.WithVerbose[[]byte](true)),
 		opts:       dbOpts,
 		cleaner:    newClener(),
+		compaction: compaction.NewLeveledCompaction(compaction.DefaultOptions),
 	}
 	switch _, err := os.Stat(dbOpts.path); {
 	case err == nil:
@@ -242,7 +245,8 @@ func (l *db) new() (err error) {
 	if err := common.EnsureDir(l.opts.path); err != nil {
 		return err
 	}
-	l.manifest, err = newManifest(l.id, l.opts.path, l.opts.table, sst.BLOCK_SIZE, 7)
+	// todo: take levels from opts
+	l.manifest, err = newManifest(l.id, l.opts.path, l.opts.table, sst.BLOCK_SIZE, 4)
 	if err != nil {
 		return err
 	}

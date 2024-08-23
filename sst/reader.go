@@ -88,6 +88,7 @@ func Open(dir, sstId string, logger *log.Logger) (*SST, error) {
 		idx:    indexFromBuf(idxBlock),
 		fref:   f,
 		logger: logger,
+		fsz:    fsize,
 	}, nil
 }
 

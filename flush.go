@@ -3,6 +3,7 @@ package godb
 import (
 	"time"
 
+	"github.com/jakub-galecki/godb/compaction"
 	"github.com/jakub-galecki/godb/wal"
 
 	"github.com/jakub-galecki/godb/common"
@@ -80,4 +81,13 @@ func (l *db) maybeFlush(force bool) {
 			l.opts.logger.Error().Err(err).Msg("error while moving to sink")
 		}
 	}
+	// read dbenv with lock
+	cr := l.getCompactionReq()
+	if cr, err := l.compaction.MaybeTriggerCompaction(cr); cr != nil && err == nil {
+		go l.runCompaction(cr)
+	}
+}
+
+func (l *db) runCompaction(req *compaction.CompactionReq) {
+
 }

@@ -41,7 +41,7 @@ func (env *dbEnv) appendL0Sst(sstId string) {
 	env.l0 = append(env.l0, sstId)
 }
 
-// required to hold db lock
+// requires to hold db lock
 func (env *dbEnv) applyEnv(db *db) error {
 	db.manifest.SeqNum = env.seqNum.Load()
 	db.manifest.LastFlushedFileNumber = env.lastFlushedFileNum.Load()

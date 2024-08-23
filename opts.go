@@ -9,9 +9,10 @@ import (
 )
 
 type dbOpts struct {
-	table  string
-	path   string
-	logger *log.Logger
+	table   string
+	path    string
+	logger  *log.Logger
+	sstSize uint64
 	// enableWal bool
 }
 
@@ -39,8 +40,9 @@ func WithLogger(l log.LoggerType) DbOpt {
 
 func defaultOpts(table string, opts []DbOpt) dbOpts {
 	res := dbOpts{
-		table: table,
-		path:  os.TempDir(),
+		table:   table,
+		path:    os.TempDir(),
+		sstSize: 1024,
 	}
 	for _, fn := range opts {
 		fn(&res)

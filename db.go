@@ -35,8 +35,8 @@ type db struct {
 	id         string
 	mem        *memtable.MemTable   // mutable
 	sink       []*memtable.MemTable // immutable
-	l0         *level
-	levels     []*level
+	l0         *sst.Level
+	levels     []*sst.Level
 	wl         *wal.Manager
 	wlw        wal.Writer
 	blockCache cache.Cacher[[]byte]
@@ -204,21 +204,21 @@ func (l *db) loadLevels() (err error) {
 		return errors.New("Manifest not loaded")
 	}
 	if l.l0 == nil {
-		l.l0 = newLevel(0, l.getSstPath(), l.blockCache, l.opts.logger)
+		l.l0 = sst.NewLevel(0, l.getSstPath(), l.blockCache, l.opts.logger)
 	}
-	err = l.l0.loadSSTs(l.manifest.L0)
+	err = l.l0.LoadTables(l.manifest.L0)
 	if err != nil {
 		return err
 	}
 
 	// load the rest of levels
 	if l.manifest.LevelCount > 1 {
-		l.levels = make([]*level, l.manifest.LevelCount-1) // -1 because L0 is stored in separated field
+		l.levels = make([]*sst.Level, l.manifest.LevelCount-1) // -1 because L0 is stored in separated field
 		for i, ssts := range l.manifest.Levels {
 			if l.levels[i] == nil {
-				l.levels[i] = newLevel(i, l.getSstPath(), l.blockCache, l.opts.logger)
+				l.levels[i] = sst.NewLevel(i, l.getSstPath(), l.blockCache, l.opts.logger)
 			}
-			err = l.levels[i].loadSSTs(ssts)
+			err = l.levels[i].LoadTables(ssts)
 			if err != nil {
 				return err
 			}
@@ -265,8 +265,8 @@ func (l *db) new() (err error) {
 		return err
 	}
 	// for now use global cache, maybe change so l0 has its own block cache
-	l.l0 = newLevel(0, sstPath, l.blockCache, l.opts.logger)
-	l.levels = make([]*level, 0)
+	l.l0 = sst.NewLevel(0, sstPath, l.blockCache, l.opts.logger)
+	l.levels = make([]*sst.Level, 0)
 	return nil
 }
 

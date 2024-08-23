@@ -1,4 +1,4 @@
-package godb
+package sst
 
 import (
 	"errors"
@@ -14,18 +14,18 @@ import (
 	"github.com/jakub-galecki/godb/common"
 )
 
-type level struct {
+type Level struct {
 	id int
 	//min, max []byte
-	ssts       []*sst.SST
+	ssts       []*SST
 	blockCache cache.Cacher[[]byte]
 	dir        string
 	curId      int
 	logger     *log.Logger
 }
 
-func newLevel(id int, dir string, cache cache.Cacher[[]byte], logger *log.Logger) *level {
-	lvl := level{
+func NewLevel(id int, dir string, cache cache.Cacher[[]byte], logger *log.Logger) *Level {
+	lvl := Level{
 		id:         id,
 		blockCache: cache,
 		dir:        dir,
@@ -35,11 +35,11 @@ func newLevel(id int, dir string, cache cache.Cacher[[]byte], logger *log.Logger
 	return &lvl
 }
 
-func (l *level) Get(key []byte) ([]byte, bool) {
+func (l *Level) Get(key []byte) ([]byte, bool) {
 	for _, tbl := range l.ssts {
 		val, err := tbl.Get(key)
 		if err != nil {
-			if errors.Is(err, sst.ErrNotFoundInBloom) {
+			if errors.Is(err, ErrNotFoundInBloom) {
 				continue
 			}
 			l.logger.Error().Str("sstId", tbl.GetId()).Err(err).Msg("error while getting data from sst")
@@ -50,13 +50,13 @@ func (l *level) Get(key []byte) ([]byte, bool) {
 	return nil, false
 }
 
-func (l *level) AddMemtable(d *db, mem *memtable.MemTable) (*sst.SST, error) {
+func (l *Level) AddMemtable(mem *memtable.MemTable) (*SST, error) {
 	var (
-		table *sst.SST
+		table *SST
 		err   error
 	)
 
-	if table, err = sst.WriteMemTable(d.opts.logger, mem, path.Join(d.opts.path, common.SST_DIR), l.blockCache,
+	if table, err = WriteMemTable(l.logger, mem, l.dir, l.blockCache,
 		strconv.FormatUint(mem.GetFileNum(), 10)); err != nil {
 		return nil, err
 	}
@@ -65,20 +65,26 @@ func (l *level) AddMemtable(d *db, mem *memtable.MemTable) (*sst.SST, error) {
 	return table, nil
 }
 
-//func (l *level) getNextSSTId() string {
-//	// todo: hash
-//	return common.Concat(strconv.Itoa(l.id), ".", strconv.Itoa(l.curId))
-//}
+func (l *Level) GetTables() []*SST {
+	return l.ssts
+}
 
-func (l *level) loadSSTs(ssts []string) error {
+func (l *Level) LoadTables(ssts []string) error {
 	for _, ssId := range ssts {
-		ss, err := sst.Open(l.dir, ssId, l.logger)
+		ss, err := Open(l.dir, ssId, l.logger)
 		if err != nil {
 			return err
 		}
 		l.ssts = append(l.ssts, ss)
 		l.curId++
 	}
-
 	return nil
+}
+
+func (l *Level) GetDir() string {
+	return l.dir
+}
+
+func (l *Level) GetId() int {
+	return l.id
 }

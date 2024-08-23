@@ -170,3 +170,7 @@ func (bdr *builder) updateMinMax(minKey, maxKey []byte) {
 	bdr.min = common.Min(bdr.min, minKey)
 	bdr.max = common.Max(bdr.max, maxKey)
 }
+
+func (bdr *builder) GetSize() uint64 {
+	return bdr.size
+}

@@ -7,6 +7,11 @@ Implementation inspired by:
 
 ### Running the source code 
 
+Tested on GoLang version:
+```
+go version go1.22.5
+```
+
 To run the source code firt clone this repository. After that run `go mod tidy` to install all required dependecies. 
 
 To run all unit tests with their coverage run command `./test.sh`

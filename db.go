@@ -59,7 +59,7 @@ func Open(name string, opts ...DbOpt) (*db, error) {
 		blockCache: cache.New(cache.WithVerbose[[]byte](true)),
 		opts:       dbOpts,
 		cleaner:    newClener(),
-		compaction: compaction.NewLeveledCompaction(compaction.DefaultOptions),
+		//compaction: compaction.NewLeveledCompaction(compaction.DefaultOptions),
 	}
 	switch _, err := os.Stat(dbOpts.path); {
 	case err == nil:

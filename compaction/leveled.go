@@ -78,7 +78,7 @@ func (l *LeveledCompaction) compactL0(req *CompactionReq) (*CompactionReq, error
 	targetLevel := req.Levels[l.opt.BaseLevel-1]
 	baseLevelSst := targetLevel.GetTables()
 	overlapping := l.getOverlappingTables(req.L0.GetTables(), baseLevelSst)
-	l0Iters := func() []common.Iterator {
+	level0iterators := func() []common.Iterator {
 		res := make([]common.Iterator, 0, len(req.L0.GetTables()))
 		for _, table := range req.L0.GetTables() {
 			it, err := sst.NewSSTableIter(table)
@@ -90,7 +90,7 @@ func (l *LeveledCompaction) compactL0(req *CompactionReq) (*CompactionReq, error
 		}
 		return res
 	}()
-	l0MergeIter, err := NewMergeIter(l0Iters...)
+	l0MergeIter, err := NewMergeIter(level0iterators...)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,6 @@ func (l *LeveledCompaction) compact(req *CompactionReq) (*CompactionReq, error) 
 		// no more levels that could be compacted
 		return nil, nil
 	}
-
 	lowerTable := func() []*sst.SST {
 		return []*sst.SST{req.Levels[req.selected.level].GetOldest()}
 	}()

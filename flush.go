@@ -82,10 +82,11 @@ func (l *db) maybeFlush(force bool) {
 		}
 	}
 	// read dbenv with lock
-	cr := l.getCompactionReq()
-	if cr, err := l.compaction.MaybeTriggerCompaction(cr); cr != nil && err == nil {
-		go l.runCompaction(cr)
-	}
+
+	//cr := l.getCompactionReq()
+	//if cr, err := l.compaction.MaybeTriggerCompaction(cr); cr != nil && err == nil {
+	//	go l.runCompaction(cr)
+	//}
 }
 
 func (l *db) runCompaction(req *compaction.CompactionReq) {

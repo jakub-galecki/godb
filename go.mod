@@ -1,6 +1,6 @@
 module github.com/jakub-galecki/godb
 
-go 1.21
+go 1.22
 
 require (
 	github.com/rs/zerolog v1.32.0

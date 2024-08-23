@@ -34,5 +34,6 @@ func TestCore(t *testing.T) {
 		require.Truef(t, found, "key %s not found", fmt.Sprintf("foo.%d", i))
 		require.Equal(t, []byte(fmt.Sprintf("bar.%d", i)), val)
 	}
+	assert.True(t, false)
 	cleanup(path.Join(os.TempDir(), dbName))
 }

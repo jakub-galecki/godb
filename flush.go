@@ -64,7 +64,7 @@ func (l *db) flush(fl *memtable.MemTable) error {
 	}
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	l.appendL0Sst(newSST.GetId())
+	l.append(0, newSST)
 	l.setLastFlushedSeqNum(fl.GetFileNum())
 	if err := l.applyEnv(l); err != nil {
 		return err
@@ -83,12 +83,13 @@ func (l *db) maybeFlush(force bool) {
 			l.opts.logger.Error().Err(err).Msg("error while moving to sink")
 		}
 	}
-	// cr := l.getCompactionReq()
-	// if cr, err := l.compaction.MaybeTriggerCompaction(cr); cr != nil && err == nil {
-	// 	go l.runCompaction(cr)
-	// }
+	cr := l.getCompactionReq()
+	if cr, err := l.compaction.MaybeTriggerCompaction(cr); cr != nil && err == nil {
+		go l.runCompaction(cr)
+	}
 }
 
+// runCompaction acquires l.mutex and runs compaction process. Mutex is dropped for IO operations.
 func (l *db) runCompaction(req *compaction.CompactionReq) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()

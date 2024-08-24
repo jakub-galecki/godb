@@ -113,7 +113,7 @@ func (l *db) recover() (err error) {
 	toDel := make([]string, 0, len(logFiles))
 
 	logsToRecover := l.getLogsToRecover(logFiles, toDel)
-	toDel = append(toDel, l.getIncompleteFiles()...)
+	toDel = append(toDel, l.getDeadFiles()...)
 	l.cleaner.removeSync(toDel)
 	err = l.recoverWal(logsToRecover)
 	if err != nil {
@@ -233,18 +233,17 @@ func (l *db) loadLevels() (err error) {
 	}
 
 	// load the rest of levels
-	if l.manifest.LevelCount > 1 {
-		l.levels = make([]*sst.Level, l.manifest.LevelCount-1) // -1 because L0 is stored in separated field
-		for i, ssts := range l.manifest.Levels {
-			if l.levels[i] == nil {
-				l.levels[i] = sst.NewLevel(i, l.getSstPath(), l.blockCache, l.opts.logger)
-			}
-			err = l.levels[i].LoadTables(ssts)
-			if err != nil {
-				return err
-			}
+	l.levels = make([]*sst.Level, l.manifest.MaxLevels)
+	for i, ssts := range l.manifest.Levels {
+		if l.levels[i] == nil {
+			l.levels[i] = sst.NewLevel(i+1, l.getSstPath(), l.blockCache, l.opts.logger)
+		}
+		err = l.levels[i].LoadTables(ssts)
+		if err != nil {
+			return err
 		}
 	}
+
 	l.opts.logger.Event("loadLevels", start)
 	return nil
 }
@@ -288,7 +287,10 @@ func (l *db) new() (err error) {
 	}
 	// for now use global cache, maybe change so l0 has its own block cache
 	l.l0 = sst.NewLevel(0, sstPath, l.blockCache, l.opts.logger)
-	l.levels = make([]*sst.Level, 0)
+	l.levels = make([]*sst.Level, l.manifest.MaxLevels)
+	for i := 0; i < l.manifest.MaxLevels; i++ {
+		l.levels[i] = sst.NewLevel(i+1, l.getSstPath(), l.blockCache, l.opts.logger)
+	}
 	return nil
 }
 
@@ -322,7 +324,7 @@ func (l *db) getLogPath(fileName string) string {
 	return path.Join(l.opts.path, common.WAL, fileName)
 }
 
-func (l *db) getIncompleteFiles() []string {
+func (l *db) getDeadFiles() []string {
 	applied := func() []string {
 		files := make([]string, 0)
 		for _, f := range l.manifest.L0 {

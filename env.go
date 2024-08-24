@@ -1,6 +1,8 @@
 package godb
 
 import (
+	"github.com/jakub-galecki/godb/sst"
+	"slices"
 	"sync/atomic"
 )
 
@@ -16,13 +18,15 @@ func envFromManifest(m *Manifest) *dbEnv {
 	env.seqNum.Store(m.SeqNum)
 	env.lastFlushedFileNum.Store(m.LastFlushedFileNumber)
 	env.l0 = make([]string, 0)
+	env.levels = make([][]string, m.MaxLevels)
 	return env
 }
 
 func (env *dbEnv) refresh(m *Manifest) {
 	env.seqNum.Store(m.SeqNum)
 	env.lastFlushedFileNum.Store(m.LastFlushedFileNumber)
-	env.l0 = make([]string, 0)
+	env.l0 = m.L0
+	env.levels = m.Levels
 }
 
 func (env *dbEnv) getSeqNum(count int) uint64 {
@@ -37,16 +41,41 @@ func (env *dbEnv) setLastFlushedSeqNum(fnum uint64) {
 	env.lastFlushedFileNum.Store(fnum)
 }
 
-func (env *dbEnv) appendL0Sst(sstId string) {
-	env.l0 = append(env.l0, sstId)
+// requires to hold db lock
+func (env *dbEnv) append(l int, tables ...*sst.SST) {
+	for _, table := range tables {
+		if l == 0 {
+			env.l0 = append(env.l0, table.GetId())
+		} else {
+			env.levels[l] = append(env.levels[l], table.GetId())
+		}
+	}
+}
+
+// requires to hold db lock
+func (env *dbEnv) remove(l int, tables ...*sst.SST) {
+	remove := func(arr []string, id string) []string {
+		i, found := slices.BinarySearch(arr, id)
+		if !found {
+			return arr
+		}
+		return append(arr[:i], arr[i+1:]...)
+	}
+	// todo: optimize, for now we copy whole slice for each table
+	for _, table := range tables {
+		if l == 0 {
+			env.l0 = remove(env.l0, table.GetId())
+		} else {
+			env.levels[l] = remove(env.levels[l], table.GetId())
+		}
+	}
 }
 
 // requires to hold db lock
 func (env *dbEnv) applyEnv(db *db) error {
 	db.manifest.SeqNum = env.seqNum.Load()
 	db.manifest.LastFlushedFileNumber = env.lastFlushedFileNum.Load()
-	for _, sstId := range env.l0 {
-		db.manifest.addSst(db.l0.GetId(), sstId)
-	}
+	db.manifest.L0 = env.l0
+	db.manifest.Levels = env.levels
 	return db.manifest.fsync()
 }

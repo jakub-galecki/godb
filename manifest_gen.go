@@ -105,12 +105,6 @@ func (z *Manifest) DecodeMsg(dc *msgp.Reader) (err error) {
 				err = msgp.WrapError(err, "BlockSize")
 				return
 			}
-		case "LevelCount":
-			z.LevelCount, err = dc.ReadInt()
-			if err != nil {
-				err = msgp.WrapError(err, "LevelCount")
-				return
-			}
 		case "MaxLevels":
 			z.MaxLevels, err = dc.ReadInt()
 			if err != nil {
@@ -148,9 +142,9 @@ func (z *Manifest) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z *Manifest) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 12
+	// map header, size 11
 	// write "Id"
-	err = en.Append(0x8c, 0xa2, 0x49, 0x64)
+	err = en.Append(0x8b, 0xa2, 0x49, 0x64)
 	if err != nil {
 		return
 	}
@@ -240,16 +234,6 @@ func (z *Manifest) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "BlockSize")
 		return
 	}
-	// write "LevelCount"
-	err = en.Append(0xaa, 0x4c, 0x65, 0x76, 0x65, 0x6c, 0x43, 0x6f, 0x75, 0x6e, 0x74)
-	if err != nil {
-		return
-	}
-	err = en.WriteInt(z.LevelCount)
-	if err != nil {
-		err = msgp.WrapError(err, "LevelCount")
-		return
-	}
 	// write "MaxLevels"
 	err = en.Append(0xa9, 0x4d, 0x61, 0x78, 0x4c, 0x65, 0x76, 0x65, 0x6c, 0x73)
 	if err != nil {
@@ -296,9 +280,9 @@ func (z *Manifest) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *Manifest) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 12
+	// map header, size 11
 	// string "Id"
-	o = append(o, 0x8c, 0xa2, 0x49, 0x64)
+	o = append(o, 0x8b, 0xa2, 0x49, 0x64)
 	o = msgp.AppendString(o, z.Id)
 	// string "L0"
 	o = append(o, 0xa2, 0x4c, 0x30)
@@ -327,9 +311,6 @@ func (z *Manifest) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "BlockSize"
 	o = append(o, 0xa9, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x53, 0x69, 0x7a, 0x65)
 	o = msgp.AppendUint64(o, z.BlockSize)
-	// string "LevelCount"
-	o = append(o, 0xaa, 0x4c, 0x65, 0x76, 0x65, 0x6c, 0x43, 0x6f, 0x75, 0x6e, 0x74)
-	o = msgp.AppendInt(o, z.LevelCount)
 	// string "MaxLevels"
 	o = append(o, 0xa9, 0x4d, 0x61, 0x78, 0x4c, 0x65, 0x76, 0x65, 0x6c, 0x73)
 	o = msgp.AppendInt(o, z.MaxLevels)
@@ -444,12 +425,6 @@ func (z *Manifest) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "BlockSize")
 				return
 			}
-		case "LevelCount":
-			z.LevelCount, bts, err = msgp.ReadIntBytes(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "LevelCount")
-				return
-			}
 		case "MaxLevels":
 			z.MaxLevels, bts, err = msgp.ReadIntBytes(bts)
 			if err != nil {
@@ -499,6 +474,6 @@ func (z *Manifest) Msgsize() (s int) {
 			s += msgp.StringPrefixSize + len(z.Levels[za0002][za0003])
 		}
 	}
-	s += 6 + msgp.StringPrefixSize + len(z.Table) + 10 + msgp.Int64Size + 5 + msgp.StringPrefixSize + len(z.Path) + 10 + msgp.Uint64Size + 11 + msgp.IntSize + 10 + msgp.IntSize + 7 + msgp.Uint64Size + 15 + msgp.Uint64Size + 22 + msgp.Uint64Size
+	s += 6 + msgp.StringPrefixSize + len(z.Table) + 10 + msgp.Int64Size + 5 + msgp.StringPrefixSize + len(z.Path) + 10 + msgp.Uint64Size + 10 + msgp.IntSize + 7 + msgp.Uint64Size + 15 + msgp.Uint64Size + 22 + msgp.Uint64Size
 	return
 }

@@ -2,6 +2,7 @@ package godb
 
 import (
 	"fmt"
+	"github.com/jakub-galecki/godb/log"
 	"os"
 	"path"
 	"testing"
@@ -20,7 +21,7 @@ func cleanup(dir string) {
 
 func TestCore(t *testing.T) {
 	dbName := time.Now().Format(time.RFC3339Nano)
-	lsmt, err := Open(dbName, WithDbPath(os.TempDir()))
+	lsmt, err := Open(dbName, WithDbPath(os.TempDir()), WithLogger(log.JsonLogger))
 	assert.NoError(t, err)
 	for i := 0; i < 100000; i++ {
 		err := lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))

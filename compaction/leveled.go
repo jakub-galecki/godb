@@ -21,7 +21,7 @@ var DefaultOptions = &Options{
 	LevelMultiplier:      10,
 	MaxLevels:            4,
 	MaxBytesForLevelBase: 128 * (1 << 20),
-	L0MaxFiles:           4,
+	L0MaxFiles:           1,
 	BaseLevel:            1,
 }
 

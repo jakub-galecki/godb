@@ -119,10 +119,12 @@ func (l *LeveledCompaction) compactL0(req *CompactionReq) (*CompactionReq, error
 	}()
 	l0MergeIter, err := NewMergeIter(level0iterators...)
 	if err != nil {
+		req.Logger.Error().Err(err).Msg("error while creating iterator for l0 tables")
 		return nil, err
 	}
 	baseIter, err := sst.NewSSTablesIter(overlapping...)
 	if err != nil {
+		req.Logger.Error().Err(err).Msg("error while creating iterator for overlapping tables")
 		return nil, err
 	}
 	req.Lower = l0MergeIter
@@ -151,10 +153,12 @@ func (l *LeveledCompaction) compact(req *CompactionReq) (*CompactionReq, error) 
 	overlapping := l.getOverlappingTables(sourceTables, targetLevelTables)
 	lowerIter, err := sst.NewSSTablesIter(sourceTables...)
 	if err != nil {
+		req.Logger.Error().Err(err).Msg("error while creating iterator for lower tables")
 		return nil, err
 	}
 	upperIter, err := sst.NewSSTablesIter(overlapping...)
 	if err != nil {
+		req.Logger.Error().Err(err).Msg("error while creating iterator for upper tables")
 		return nil, err
 	}
 	req.Lower = lowerIter

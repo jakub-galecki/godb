@@ -1,6 +1,7 @@
 package godb
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/jakub-galecki/godb/compaction"
@@ -85,6 +86,7 @@ func (l *db) maybeFlush(force bool) {
 	}
 	cr := l.getCompactionReq()
 	if cr, err := l.compaction.MaybeTriggerCompaction(cr); cr != nil && err == nil {
+		fmt.Println("starting compaction")
 		go l.runCompaction(cr)
 	}
 }

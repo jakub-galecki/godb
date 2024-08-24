@@ -16,9 +16,6 @@ type SSTablesIter struct {
 
 // NewSSTablesIter iterates over multiple sstables without overlapping keys
 func NewSSTablesIter(ssts ...*SST) (*SSTablesIter, error) {
-	if len(ssts) == 0 {
-		return nil, errors.New("no ssts provided")
-	}
 	sit := &SSTablesIter{
 		cur:  nil,
 		init: ssts,
@@ -27,6 +24,9 @@ func NewSSTablesIter(ssts ...*SST) (*SSTablesIter, error) {
 }
 
 func (sit *SSTablesIter) setIterator() (err error) {
+	if sit.i >= len(sit.init) {
+		return common.ErrIteratorExhausted
+	}
 	sit.cur, err = NewSSTableIter(sit.init[sit.i])
 	if err != nil {
 		return err
@@ -39,7 +39,9 @@ func (sit *SSTablesIter) Next() (*common.InternalKey, []byte, error) {
 	k, v, err := sit.cur.Next()
 	if err != nil {
 		if errors.Is(err, common.ErrIteratorExhausted) {
-			sit.setIterator()
+			if err := sit.setIterator(); err != nil {
+				return nil, nil, err
+			}
 			return sit.cur.SeekToFirst()
 		}
 	}
@@ -57,6 +59,9 @@ func (sit *SSTablesIter) SeekToFirst() (*common.InternalKey, []byte, error) {
 }
 
 func (sit *SSTablesIter) Valid() bool {
+	if sit == nil {
+		return false
+	}
 	if sit.cur == nil {
 		return false
 	}

@@ -94,6 +94,9 @@ func (mi *MergeIter) Value() []byte {
 }
 
 func (mi *MergeIter) Valid() bool {
+	if mi == nil {
+		return false
+	}
 	if mi.heap[0] == nil {
 		return false
 	}

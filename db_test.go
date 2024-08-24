@@ -2,6 +2,7 @@ package godb
 
 import (
 	"fmt"
+	"github.com/jakub-galecki/godb/log"
 	"os"
 	"path"
 	"testing"

@@ -1,7 +1,6 @@
 package sst
 
 import (
-	"bytes"
 	"errors"
 	"os"
 	"path"
@@ -30,7 +29,6 @@ type builder struct {
 	sstId    string
 	logger   *log.Logger
 	min, max []byte
-	buf      bytes.Buffer
 }
 
 func NewBuilder(logger *log.Logger, dir string, n uint64, id string) Builder {
@@ -42,6 +40,7 @@ func NewBuilder(logger *log.Logger, dir string, n uint64, id string) Builder {
 		curBB:  newBlockBuilder(),
 		sstId:  id,
 		logger: logger,
+		file:   vfs.NewVFS[block](dir, id+".db", F_FLAGS, F_PERMISSION),
 	}
 	return bdr
 }
@@ -74,17 +73,10 @@ func (bdr *builder) Finish() *SST {
 		b, mink, maxk := bdr.curBB.finish()
 		bdr.flushBlock(b, mink, maxk)
 	}
-
-	// require that the file is empty
-	bdr.file = vfs.NewVFS[block](bdr.dir, bdr.sstId+".db", F_FLAGS, F_PERMISSION)
 	// data info
 	meta.dataOffset = 0
-	writtenData, err := bdr.buf.WriteTo(bdr.file)
-	if err != nil {
-		panic(err)
-	}
-	meta.dataSize = uint64(writtenData)
-	bdr.offset = uint64(writtenData)
+	meta.dataSize = bdr.size
+
 	bfSize, err := bdr.bf.WriteTo(bdr.file)
 	//logger.Debugf("SST::FINISH bfsize: %d", bfSize)
 	if err != nil {
@@ -124,13 +116,13 @@ func (bdr *builder) Finish() *SST {
 
 	err = bdr.file.GetFileRef().Close()
 	if err != nil {
-		// trace.Error().Err(err).Msg("closing file after SST builder finish")
+		bdr.logger.Error().Err(err).Msg("closing file after SST builder finish")
 		panic(err)
 	}
 
 	fref, err := os.Open(path.Join(bdr.dir, bdr.sstId+".db"))
 	if err != nil {
-		// trace.Error().Err(err).Msg("opeing file for read after SST builder finish")
+		bdr.logger.Error().Err(err).Msg("opeing file for read after SST builder finish")
 		panic(err)
 	}
 	st, _ := fref.Stat()
@@ -154,7 +146,7 @@ func (bdr *builder) addIndex(minKey []byte) {
 
 func (bdr *builder) flushBlock(b *block, minKey, maxKey []byte) {
 	bdr.updateMinMax(minKey, maxKey)
-	n, err := bdr.buf.Write(b.buf)
+	n, err := bdr.file.Write(b.buf)
 	bdr.addIndex(minKey)
 	bdr.offset += uint64(n)
 	bdr.size += uint64(n)

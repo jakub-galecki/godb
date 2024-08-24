@@ -66,7 +66,9 @@ func (l *db) flush(fl *memtable.MemTable) error {
 	defer l.mutex.Unlock()
 	l.appendL0Sst(newSST.GetId())
 	l.setLastFlushedSeqNum(fl.GetFileNum())
-	l.applyEnv(l)
+	if err := l.applyEnv(l); err != nil {
+		return err
+	}
 	l.dbEnv.refresh(l.manifest)
 	l.opts.logger.Event("flush", start)
 	return nil
@@ -81,14 +83,22 @@ func (l *db) maybeFlush(force bool) {
 			l.opts.logger.Error().Err(err).Msg("error while moving to sink")
 		}
 	}
-	// read dbenv with lock
-
-	//cr := l.getCompactionReq()
-	//if cr, err := l.compaction.MaybeTriggerCompaction(cr); cr != nil && err == nil {
-	//	go l.runCompaction(cr)
-	//}
+	// cr := l.getCompactionReq()
+	// if cr, err := l.compaction.MaybeTriggerCompaction(cr); cr != nil && err == nil {
+	// 	go l.runCompaction(cr)
+	// }
 }
 
 func (l *db) runCompaction(req *compaction.CompactionReq) {
-
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	l.opts.logger.Debug().
+		RawJSON("compaction_request", req.Json()).
+		Msg("running compaction process")
+	res, err := l.compact(req)
+	if err != nil {
+		l.opts.logger.Error().Err(err).Msg("running compaction failed")
+		return
+	}
+	l.applyCompaction(res)
 }

@@ -25,7 +25,10 @@ func (l *db) compact(req *compaction.CompactionReq) (*compactionRes, error) {
 	for k, v, err := it.SeekToFirst(); err == nil; k, v, err = it.Next() {
 		bd.Add(k, v)
 	}
+	// unlock for i/o operation
+	l.mutex.Unlock()
 	out := bd.Finish()
+	l.mutex.Lock()
 	return &compactionRes{
 		CompactionReq: req,
 		outTables:     []*sst.SST{out},

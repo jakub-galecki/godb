@@ -59,7 +59,6 @@ func Open(name string, opts ...DbOpt) (*db, error) {
 		blockCache: cache.New(cache.WithVerbose[[]byte](true)),
 		opts:       dbOpts,
 		cleaner:    newClener(),
-		//compaction: compaction.NewLeveledCompaction(compaction.DefaultOptions),
 	}
 	switch _, err := os.Stat(dbOpts.path); {
 	case err == nil:
@@ -74,12 +73,16 @@ func Open(name string, opts ...DbOpt) (*db, error) {
 			panic(err)
 		}
 	}
+	d.compaction = compaction.NewLeveledCompaction(compaction.DefaultOptions)
 	d.dbEnv = envFromManifest(d.manifest)
 	go d.drainSink()
 	return &d, nil
 }
 
 func (l *db) recover() (err error) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
 	start := time.Now()
 	// todo: include scenario where we recover but all memtables were flushed
 	m, err := readManifest(l.opts.path)
@@ -103,27 +106,16 @@ func (l *db) recover() (err error) {
 	if err != nil {
 		return err
 	}
-	walss, err := common.ListDir(path.Join(l.opts.path, common.WAL), func(f string) (wal.WalLogNum, bool) {
-		logSeqIndex := strings.IndexByte(f, '.')
-		if logSeqIndex < 0 {
-			return 0, false
-		}
-		return wal.WalLogNumFromString(f[:logSeqIndex])
-	})
+	logFiles, err := l.getLogFiles()
 	if err != nil {
-		return err
+		return nil
 	}
-	slices.SortStableFunc(walss, func(a, b wal.WalLogNum) int { return cmp.Compare(a, b) })
-	var toDel []string
-	i := 0
-	for j := 0; j < len(walss); j++ {
-		if uint64(walss[j]) <= l.manifest.LastFlushedFileNumber {
-			toDel = append(toDel, path.Join(l.opts.path, common.WAL, walss[j].FileName()))
-			i++
-		}
-	}
+	toDel := make([]string, 0, len(logFiles))
+
+	logsToRecover := l.getLogsToRecover(logFiles, toDel)
+	toDel = append(toDel, l.getIncompleteFiles()...)
 	l.cleaner.removeSync(toDel)
-	err = l.recoverWal(walss[i:])
+	err = l.recoverWal(logsToRecover)
 	if err != nil {
 		return err
 	}
@@ -133,6 +125,32 @@ func (l *db) recover() (err error) {
 	}
 	l.opts.logger.Event("recover", start)
 	return nil
+}
+
+func (l *db) getLogFiles() ([]wal.WalLogNum, error) {
+	wals, err := common.ListDir(path.Join(l.opts.path, common.WAL), func(f string) (wal.WalLogNum, bool) {
+		logSeqIndex := strings.IndexByte(f, '.')
+		if logSeqIndex < 0 {
+			return 0, false
+		}
+		return wal.WalLogNumFromString(f[:logSeqIndex])
+	})
+	if err != nil {
+		return nil, err
+	}
+	slices.SortStableFunc(wals, func(a, b wal.WalLogNum) int { return cmp.Compare(a, b) })
+	return wals, nil
+}
+
+func (l *db) getLogsToRecover(logFiles []wal.WalLogNum, toDel []string) []wal.WalLogNum {
+	i := 0
+	for j := 0; j < len(logFiles); j++ {
+		if uint64(logFiles[j]) <= l.manifest.LastFlushedFileNumber {
+			toDel = append(toDel, path.Join(l.opts.path, common.WAL, logFiles[j].FileName()))
+			i++
+		}
+	}
+	return logFiles[i:]
 }
 
 func (l *db) recoverWal(wals []wal.WalLogNum) (err error) {
@@ -302,4 +320,31 @@ func (l *db) getSstPath() string {
 
 func (l *db) getLogPath(fileName string) string {
 	return path.Join(l.opts.path, common.WAL, fileName)
+}
+
+func (l *db) getIncompleteFiles() []string {
+	applied := func() []string {
+		files := make([]string, 0)
+		for _, f := range l.manifest.L0 {
+			files = append(files, f)
+		}
+		for _, lvl := range l.manifest.Levels {
+			for _, f := range lvl {
+				files = append(files, f)
+			}
+		}
+		return files
+	}()
+	toDel, err := common.ListDir(path.Join(l.opts.path, common.SST_DIR), func(f string) (string, bool) {
+		index := strings.IndexByte(f, '.')
+		if index < 0 || slices.Contains(applied, f[:index]) {
+			return "", false
+		}
+		return path.Join(l.opts.path, common.SST_DIR, f), true
+	})
+	if err != nil {
+		l.opts.logger.Error().Err(err).Msg("error listing sstables")
+		return nil
+	}
+	return toDel
 }

@@ -2,6 +2,7 @@ package compaction
 
 import (
 	"bytes"
+	"encoding/json"
 
 	"github.com/jakub-galecki/godb/common"
 	"github.com/jakub-galecki/godb/log"
@@ -31,10 +32,35 @@ type CompactionReq struct {
 
 	EstimatedSize  uint64 // todo
 	IsL0Compaction bool
+	SourceLevel    *sst.Level
+	SourceTables   []*sst.SST
 	TargetLevel    *sst.Level
+	TargetTables   []*sst.SST
 	Lower, Upper   common.Iterator
 
 	selected *score
+}
+
+func (cr *CompactionReq) Json() []byte {
+	getTableIds := func(tables []*sst.SST) []string {
+		res := make([]string, 0)
+		for _, table := range tables {
+			res = append(res, table.GetId())
+		}
+		return res
+	}
+
+	if cr == nil {
+		return []byte("{}")
+	}
+	repr := make(map[string]any)
+	repr["l0_compaction"] = cr.IsL0Compaction
+	repr["source_level"] = cr.SourceLevel.GetId()
+	repr["source_tables"] = getTableIds(cr.SourceTables)
+	repr["target_level"] = cr.TargetLevel.GetId()
+	repr["target_tables"] = getTableIds(cr.TargetTables)
+	raw, _ := json.Marshal(repr)
+	return raw
 }
 
 type LeveledCompaction struct {
@@ -44,7 +70,8 @@ type LeveledCompaction struct {
 
 func NewLeveledCompaction(opt *Options) *LeveledCompaction {
 	lc := &LeveledCompaction{
-		opt: opt,
+		opt:              opt,
+		targetLevelSizes: make([]int64, opt.MaxLevels),
 	}
 	lc.calculateTargetLevelSizes()
 	return lc
@@ -98,10 +125,13 @@ func (l *LeveledCompaction) compactL0(req *CompactionReq) (*CompactionReq, error
 	if err != nil {
 		return nil, err
 	}
-	req.TargetLevel = targetLevel
 	req.Lower = l0MergeIter
 	req.Upper = baseIter
 	req.IsL0Compaction = true
+	req.SourceLevel = req.L0
+	req.SourceTables = req.L0.GetTables()
+	req.TargetLevel = targetLevel
+	req.TargetTables = overlapping
 	return req, nil
 }
 
@@ -113,13 +143,13 @@ func (l *LeveledCompaction) compact(req *CompactionReq) (*CompactionReq, error) 
 		// no more levels that could be compacted
 		return nil, nil
 	}
-	lowerTable := func() []*sst.SST {
+	sourceTables := func() []*sst.SST {
 		return []*sst.SST{req.Levels[req.selected.level].GetOldest()}
 	}()
 	targetLevel := req.Levels[req.selected.level+1]
 	targetLevelTables := targetLevel.GetTables()
-	overlapping := l.getOverlappingTables(lowerTable, targetLevelTables)
-	lowerIter, err := sst.NewSSTablesIter(lowerTable...)
+	overlapping := l.getOverlappingTables(sourceTables, targetLevelTables)
+	lowerIter, err := sst.NewSSTablesIter(sourceTables...)
 	if err != nil {
 		return nil, err
 	}
@@ -127,10 +157,13 @@ func (l *LeveledCompaction) compact(req *CompactionReq) (*CompactionReq, error) 
 	if err != nil {
 		return nil, err
 	}
-	req.TargetLevel = targetLevel
 	req.Lower = lowerIter
 	req.Upper = upperIter
 	req.IsL0Compaction = false
+	req.TargetLevel = targetLevel
+	req.TargetTables = overlapping
+	req.SourceLevel = req.Levels[req.selected.level]
+	req.SourceTables = sourceTables
 	return req, nil
 }
 

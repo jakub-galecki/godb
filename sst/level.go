@@ -1,8 +1,11 @@
 package sst
 
 import (
+	"cmp"
 	"errors"
+	"slices"
 	"strconv"
+	"sync"
 
 	"github.com/jakub-galecki/godb/internal/cache"
 	"github.com/jakub-galecki/godb/log"
@@ -17,15 +20,17 @@ type Level struct {
 	dir        string
 	curId      int
 	logger     *log.Logger
+	mutex      *sync.Mutex
 }
 
-func NewLevel(id int, dir string, cache cache.Cacher[[]byte], logger *log.Logger) *Level {
+func NewLevel(id int, dir string, mu *sync.Mutex, cache cache.Cacher[[]byte], logger *log.Logger) *Level {
 	lvl := Level{
 		id:         id,
 		blockCache: cache,
 		dir:        dir,
 		curId:      0,
 		logger:     logger,
+		mutex:      mu,
 	}
 	return &lvl
 }
@@ -55,13 +60,18 @@ func (l *Level) AddMemtable(mem *memtable.MemTable) (*SST, error) {
 		strconv.FormatUint(mem.GetFileNum(), 10)); err != nil {
 		return nil, err
 	}
+	l.mutex.Lock()
 	l.ssts = append(l.ssts, table)
 	l.curId++
+	l.mutex.Unlock()
 	return table, nil
 }
 
 func (l *Level) GetTables() []*SST {
-	return l.ssts
+	l.mutex.Lock()
+	ssts := l.ssts
+	l.mutex.Unlock()
+	return ssts
 }
 
 func (l *Level) LoadTables(ssts []string) error {
@@ -73,7 +83,25 @@ func (l *Level) LoadTables(ssts []string) error {
 		l.ssts = append(l.ssts, ss)
 		l.curId++
 	}
+	l.sort()
 	return nil
+}
+
+func (l *Level) Remove(ssts []*SST) {
+	for _, table := range ssts {
+		i, found := slices.BinarySearchFunc(l.ssts, table, func(a, b *SST) int {
+			return cmp.Compare(a.GetId(), b.GetId())
+		})
+		if !found {
+			continue
+		}
+		l.ssts = append(l.ssts[:i], l.ssts[i+1:]...)
+	}
+}
+
+func (l *Level) Append(ssts []*SST) {
+	l.ssts = append(l.ssts, ssts...)
+	l.sort()
 }
 
 func (l *Level) GetDir() string {
@@ -86,4 +114,10 @@ func (l *Level) GetId() int {
 
 func (l *Level) GetOldest() *SST {
 	return l.ssts[len(l.ssts)-1]
+}
+
+func (l *Level) sort() {
+	slices.SortStableFunc(l.ssts, func(a, b *SST) int {
+		return cmp.Compare(b.GetId(), a.GetId())
+	})
 }

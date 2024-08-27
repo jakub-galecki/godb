@@ -27,8 +27,8 @@ func (l *db) compact(req *compaction.CompactionReq) (*compactionRes, error) {
 	for k, v, err := it.SeekToFirst(); err == nil; k, v, err = it.Next() {
 		bd.Add(k, v)
 	}
-	out := bd.Finish()
 	l.mutex.Lock()
+	out := bd.Finish()
 	return &compactionRes{
 		CompactionReq: req,
 		outTables:     []*sst.SST{out},
@@ -45,13 +45,13 @@ func (l *db) applyCompaction(res *compactionRes) {
 		return
 	}
 	l.refresh(l.manifest)
+	res.SourceLevel.Remove(res.SourceTables)
+	res.TargetLevel.Remove(res.TargetTables)
+	res.TargetLevel.Append(res.outTables)
 	l.cleaner.removeSync(l.getDeadFiles())
 }
 
-// accquires db lock to read consittent state
 func (l *db) getCompactionReq() *compaction.CompactionReq {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
 	return &compaction.CompactionReq{
 		L0:     l.l0,
 		Levels: l.levels,

@@ -8,19 +8,19 @@ import (
 
 var _ common.Iterator = (*TwoLevelIter)(nil)
 
-// MergeWrapperIterer iterates over two common.Iterator and choses
-// smaller key from each iteration resulting in sorted table
+// TwoLevelIter iterates over two common.Iterator and choses
+// smaller key from each iteration resulting in sorted strings table
 type TwoLevelIter struct {
 	current common.Iterator
 	other   common.Iterator
 }
 
-func NewMergeWrapperIter(i1, i2 common.Iterator) (*TwoLevelIter, error) {
+func NewTwoLevelIter(i1, i2 common.Iterator) (*TwoLevelIter, error) {
 	mi := &TwoLevelIter{}
 	seekIfNotValid := func(i common.Iterator) error {
 		if i != nil && !i.Valid() {
 			_, _, err := i.SeekToFirst()
-			if err != nil {
+			if err != nil && !errors.Is(err, common.ErrIteratorExhausted) {
 				return err
 			}
 		}
@@ -87,11 +87,11 @@ func (mi *TwoLevelIter) Next() (*common.InternalKey, []byte, error) {
 
 func (mi *TwoLevelIter) SeekToFirst() (*common.InternalKey, []byte, error) {
 	_, _, err := mi.current.SeekToFirst()
-	if err != nil {
+	if err != nil && !errors.Is(err, common.ErrIteratorExhausted) {
 		return nil, nil, err
 	}
 	_, _, err = mi.other.SeekToFirst()
-	if err != nil {
+	if err != nil && !errors.Is(err, common.ErrIteratorExhausted) {
 		return nil, nil, err
 	}
 	err = mi.setCurrent()

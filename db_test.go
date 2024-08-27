@@ -2,11 +2,12 @@ package godb
 
 import (
 	"fmt"
-	"github.com/jakub-galecki/godb/log"
 	"os"
 	"path"
 	"testing"
 	"time"
+
+	"github.com/jakub-galecki/godb/log"
 
 	"github.com/stretchr/testify/assert"
 

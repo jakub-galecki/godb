@@ -1,7 +1,6 @@
 package godb
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/jakub-galecki/godb/compaction"
@@ -37,13 +36,13 @@ func (l *db) drainSink() {
 		// flush all memtables from the sink at once ??
 		// remember to remove them only after they are flushed so that data
 		// can be accepted
+		l.mutex.Lock()
 		if len(l.sink) > 0 {
-			l.mutex.Lock()
 			m = l.sink[0]
-			l.mutex.Unlock()
 		}
+		l.mutex.Unlock()
 
-		if m != nil {
+		if m != nil && !l.compacting.Load() {
 			l.opts.logger.Debug().Msg("got memtable to flush")
 
 			if err := l.flush(m); err != nil {
@@ -85,8 +84,8 @@ func (l *db) maybeFlush(force bool) {
 		}
 	}
 	cr := l.getCompactionReq()
-	if cr, err := l.compaction.MaybeTriggerCompaction(cr); cr != nil && err == nil {
-		fmt.Println("starting compaction")
+	if cr, err := l.compaction.MaybeTriggerCompaction(cr); cr != nil && err == nil && !l.compacting.Load() {
+		l.compacting.Store(true)
 		go l.runCompaction(cr)
 	}
 }
@@ -104,4 +103,5 @@ func (l *db) runCompaction(req *compaction.CompactionReq) {
 		return
 	}
 	l.applyCompaction(res)
+	l.compacting.Store(false)
 }

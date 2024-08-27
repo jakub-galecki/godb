@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/jakub-galecki/godb/compaction"
@@ -46,6 +47,7 @@ type db struct {
 	manifest   *Manifest
 	cleaner    *cleaner
 	compaction *compaction.LeveledCompaction
+	compacting atomic.Bool
 }
 
 func Open(name string, opts ...DbOpt) (*db, error) {
@@ -74,7 +76,6 @@ func Open(name string, opts ...DbOpt) (*db, error) {
 		}
 	}
 	d.compaction = compaction.NewLeveledCompaction(compaction.DefaultOptions)
-	d.dbEnv = envFromManifest(d.manifest)
 	go d.drainSink()
 	return &d, nil
 }
@@ -102,6 +103,7 @@ func (l *db) recover() (err error) {
 	}
 
 	l.manifest = m
+	l.dbEnv = envFromManifest(m)
 	l.wl, err = wal.Init(wal.DefaultOpts.WithDir(path.Join(l.opts.path, common.WAL)))
 	if err != nil {
 		return err
@@ -112,7 +114,7 @@ func (l *db) recover() (err error) {
 	}
 	toDel := make([]string, 0, len(logFiles))
 
-	logsToRecover := l.getLogsToRecover(logFiles, toDel)
+	toDel, logsToRecover := l.getLogsToRecover(logFiles, toDel)
 	toDel = append(toDel, l.getDeadFiles()...)
 	l.cleaner.removeSync(toDel)
 	err = l.recoverWal(logsToRecover)
@@ -142,7 +144,7 @@ func (l *db) getLogFiles() ([]wal.WalLogNum, error) {
 	return wals, nil
 }
 
-func (l *db) getLogsToRecover(logFiles []wal.WalLogNum, toDel []string) []wal.WalLogNum {
+func (l *db) getLogsToRecover(logFiles []wal.WalLogNum, toDel []string) ([]string, []wal.WalLogNum) {
 	i := 0
 	for j := 0; j < len(logFiles); j++ {
 		if uint64(logFiles[j]) <= l.manifest.LastFlushedFileNumber {
@@ -150,7 +152,7 @@ func (l *db) getLogsToRecover(logFiles []wal.WalLogNum, toDel []string) []wal.Wa
 			i++
 		}
 	}
-	return logFiles[i:]
+	return toDel, logFiles[i:]
 }
 
 func (l *db) recoverWal(wals []wal.WalLogNum) (err error) {
@@ -225,7 +227,7 @@ func (l *db) loadLevels() (err error) {
 		return errors.New("Manifest not loaded")
 	}
 	if l.l0 == nil {
-		l.l0 = sst.NewLevel(0, l.getSstPath(), l.blockCache, l.opts.logger)
+		l.l0 = sst.NewLevel(0, l.getSstPath(), &l.mutex, l.blockCache, l.opts.logger)
 	}
 	err = l.l0.LoadTables(l.manifest.L0)
 	if err != nil {
@@ -236,7 +238,7 @@ func (l *db) loadLevels() (err error) {
 	l.levels = make([]*sst.Level, l.manifest.MaxLevels)
 	for i, ssts := range l.manifest.Levels {
 		if l.levels[i] == nil {
-			l.levels[i] = sst.NewLevel(i+1, l.getSstPath(), l.blockCache, l.opts.logger)
+			l.levels[i] = sst.NewLevel(i+1, l.getSstPath(), &l.mutex, l.blockCache, l.opts.logger)
 		}
 		err = l.levels[i].LoadTables(ssts)
 		if err != nil {
@@ -251,8 +253,7 @@ func (l *db) loadLevels() (err error) {
 func (l *db) Close() error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	err := l.manifest.fsync()
-	if err != nil {
+	if err := l.applyEnv(l); err != nil {
 		return err
 	}
 	return nil
@@ -267,6 +268,7 @@ func (l *db) new() (err error) {
 	if err != nil {
 		return err
 	}
+	l.dbEnv = envFromManifest(l.manifest)
 	l.wl, err = wal.Init(wal.DefaultOpts.WithDir(path.Join(l.opts.path, common.WAL)))
 	if err != nil {
 		return err
@@ -281,15 +283,14 @@ func (l *db) new() (err error) {
 		return err
 	}
 	l.mem = memtable.New(fnum)
-	err = l.manifest.fsync()
-	if err != nil {
+	if err := l.applyEnv(l); err != nil {
 		return err
 	}
 	// for now use global cache, maybe change so l0 has its own block cache
-	l.l0 = sst.NewLevel(0, sstPath, l.blockCache, l.opts.logger)
+	l.l0 = sst.NewLevel(0, sstPath, &l.mutex, l.blockCache, l.opts.logger)
 	l.levels = make([]*sst.Level, l.manifest.MaxLevels)
 	for i := 0; i < l.manifest.MaxLevels; i++ {
-		l.levels[i] = sst.NewLevel(i+1, l.getSstPath(), l.blockCache, l.opts.logger)
+		l.levels[i] = sst.NewLevel(i+1, l.getSstPath(), &l.mutex, l.blockCache, l.opts.logger)
 	}
 	return nil
 }
@@ -307,12 +308,6 @@ func (l *db) Iterator() common.InnerStorageIterator {
 func (l *db) getNextSeqNum() uint64 {
 	res := l.manifest.SeqNum
 	l.manifest.SeqNum++
-	return res
-}
-
-func (l *db) getNextFileNum() uint64 {
-	res := l.manifest.NextFileNumber
-	l.manifest.NextFileNumber++
 	return res
 }
 

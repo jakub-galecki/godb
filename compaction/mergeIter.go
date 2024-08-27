@@ -116,6 +116,9 @@ func (mi *MergeIter) maybeMoveIters() {
 		return
 	}
 	cur := mi.heap[0]
+	if cur == nil {
+		heap.Remove(&mi.heap, 0)
+	}
 	// check that other iters dont have the same key
 	for i, it := range mi.heap[1:] {
 		if cur.Key().SoftEqual(it.Key()) {

@@ -15,7 +15,7 @@ type compactionRes struct {
 
 // calling function must hold the l.mutex
 func (l *db) compact(req *compaction.CompactionReq) (*compactionRes, error) {
-	it, err := compaction.NewMergeWrapperIter(req.Lower, req.Upper)
+	it, err := compaction.NewTwoLevelIter(req.Lower, req.Upper)
 	if err != nil {
 		return nil, err
 	}

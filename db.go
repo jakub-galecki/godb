@@ -145,7 +145,7 @@ func (l *db) getLogFiles() ([]wal.WalLogNum, error) {
 func (l *db) getLogsToRecover(logFiles []wal.WalLogNum, toDel []string) []wal.WalLogNum {
 	i := 0
 	for j := 0; j < len(logFiles); j++ {
-		if uint64(logFiles[j]) <= l.manifest.LastFlushedFileNumber {
+		if uint64(logFiles[j]) < l.manifest.LastFlushedFileNumber {
 			toDel = append(toDel, path.Join(l.opts.path, common.WAL, logFiles[j].FileName()))
 			i++
 		}

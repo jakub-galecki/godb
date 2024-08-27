@@ -6,17 +6,17 @@ import (
 	"github.com/jakub-galecki/godb/common"
 )
 
-var _ common.Iterator = (*MergeWrapperIiter)(nil)
+var _ common.Iterator = (*TwoLevelIter)(nil)
 
 // MergeWrapperIterer iterates over two common.Iterator and choses
 // smaller key from each iteration resulting in sorted table
-type MergeWrapperIiter struct {
+type TwoLevelIter struct {
 	current common.Iterator
 	other   common.Iterator
 }
 
-func NewMergeWrapperIter(i1, i2 common.Iterator) (*MergeWrapperIiter, error) {
-	mi := &MergeWrapperIiter{}
+func NewTwoLevelIter(i1, i2 common.Iterator) (*TwoLevelIter, error) {
+	mi := &TwoLevelIter{}
 	seekIfNotValid := func(i common.Iterator) error {
 		if !i.Valid() {
 			_, _, err := i.SeekToFirst()
@@ -36,7 +36,7 @@ func NewMergeWrapperIter(i1, i2 common.Iterator) (*MergeWrapperIiter, error) {
 	return mi, nil
 }
 
-func (mi *MergeWrapperIiter) setCurrent() error {
+func (mi *TwoLevelIter) setCurrent() error {
 	bothValid := func() bool {
 		return mi.current.Valid() && mi.other.Valid()
 	}
@@ -66,11 +66,11 @@ func (mi *MergeWrapperIiter) setCurrent() error {
 	return nil
 }
 
-func (mi *MergeWrapperIiter) Valid() bool {
+func (mi *TwoLevelIter) Valid() bool {
 	return mi.current.Valid() || mi.other.Valid()
 }
 
-func (mi *MergeWrapperIiter) Next() (*common.InternalKey, []byte, error) {
+func (mi *TwoLevelIter) Next() (*common.InternalKey, []byte, error) {
 	_, _, err := mi.current.Next()
 	if err != nil {
 		return nil, nil, err
@@ -82,7 +82,7 @@ func (mi *MergeWrapperIiter) Next() (*common.InternalKey, []byte, error) {
 	return mi.current.Key(), mi.current.Value(), nil
 }
 
-func (mi *MergeWrapperIiter) SeekToFirst() (*common.InternalKey, []byte, error) {
+func (mi *TwoLevelIter) SeekToFirst() (*common.InternalKey, []byte, error) {
 	_, _, err := mi.current.SeekToFirst()
 	if err != nil {
 		return nil, nil, err
@@ -98,14 +98,14 @@ func (mi *MergeWrapperIiter) SeekToFirst() (*common.InternalKey, []byte, error) 
 	return mi.current.Key(), mi.current.Value(), nil
 }
 
-func (mi *MergeWrapperIiter) Key() *common.InternalKey {
+func (mi *TwoLevelIter) Key() *common.InternalKey {
 	return mi.current.Key()
 }
 
-func (mi *MergeWrapperIiter) Value() []byte {
+func (mi *TwoLevelIter) Value() []byte {
 	return mi.current.Value()
 }
 
-func (mi *MergeWrapperIiter) swap() {
+func (mi *TwoLevelIter) swap() {
 	mi.current, mi.other = mi.other, mi.current
 }

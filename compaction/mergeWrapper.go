@@ -15,7 +15,7 @@ type TwoLevelIter struct {
 	other   common.Iterator
 }
 
-func NewMergeWrapperIter(i1, i2 common.Iterator) (*TwoLevelIter, error) {
+func NewTwoLevelIter(i1, i2 common.Iterator) (*TwoLevelIter, error) {
 	mi := &TwoLevelIter{}
 	seekIfNotValid := func(i common.Iterator) error {
 		if i != nil && !i.Valid() {

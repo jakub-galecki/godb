@@ -1,8 +1,12 @@
 package sst
 
 import (
+	"cmp"
 	"errors"
+	"github.com/jakub-galecki/godb/common"
+	"sort"
 	"strconv"
+	"sync"
 
 	"github.com/jakub-galecki/godb/internal/cache"
 	"github.com/jakub-galecki/godb/log"
@@ -17,15 +21,17 @@ type Level struct {
 	dir        string
 	curId      int
 	logger     *log.Logger
+	mutex      *sync.Mutex
 }
 
-func NewLevel(id int, dir string, cache cache.Cacher[[]byte], logger *log.Logger) *Level {
+func NewLevel(id int, dir string, mu *sync.Mutex, cache cache.Cacher[[]byte], logger *log.Logger) *Level {
 	lvl := Level{
 		id:         id,
 		blockCache: cache,
 		dir:        dir,
 		curId:      0,
 		logger:     logger,
+		mutex:      mu,
 	}
 	return &lvl
 }
@@ -34,7 +40,7 @@ func (l *Level) Get(key []byte) ([]byte, bool) {
 	for _, tbl := range l.ssts {
 		val, err := tbl.Get(key)
 		if err != nil {
-			if errors.Is(err, ErrNotFoundInBloom) {
+			if errors.Is(err, ErrNotFoundInBloom) || errors.Is(err, common.ErrKeyNotFound) {
 				continue
 			}
 			l.logger.Error().Str("sstId", tbl.GetId()).Err(err).Msg("error while getting data from sst")
@@ -55,13 +61,23 @@ func (l *Level) AddMemtable(mem *memtable.MemTable) (*SST, error) {
 		strconv.FormatUint(mem.GetFileNum(), 10)); err != nil {
 		return nil, err
 	}
+	l.mutex.Lock()
 	l.ssts = append(l.ssts, table)
 	l.curId++
+	l.mutex.Unlock()
+	l.sort()
 	return table, nil
 }
 
 func (l *Level) GetTables() []*SST {
-	return l.ssts
+	l.mutex.Lock()
+	ssts := l.ssts
+	l.mutex.Unlock()
+	res := make([]*SST, len(ssts))
+	for i, sst := range ssts {
+		res[i] = sst
+	}
+	return res
 }
 
 func (l *Level) LoadTables(ssts []string) error {
@@ -73,7 +89,27 @@ func (l *Level) LoadTables(ssts []string) error {
 		l.ssts = append(l.ssts, ss)
 		l.curId++
 	}
+	l.sort()
 	return nil
+}
+
+func (l *Level) Remove(ssts []*SST) {
+	rem := func(id string) {
+		for i, table := range l.ssts {
+			if table.GetId() == id {
+				l.ssts = append(l.ssts[:i], l.ssts[i+1:]...)
+			}
+		}
+	}
+	for _, table := range ssts {
+		rem(table.GetId())
+	}
+	l.sort()
+}
+
+func (l *Level) Append(ssts []*SST) {
+	l.ssts = append(l.ssts, ssts...)
+	l.sort()
 }
 
 func (l *Level) GetDir() string {
@@ -86,4 +122,10 @@ func (l *Level) GetId() int {
 
 func (l *Level) GetOldest() *SST {
 	return l.ssts[len(l.ssts)-1]
+}
+
+func (l *Level) sort() {
+	sort.SliceStable(l.ssts, func(i, j int) bool {
+		return !cmp.Less(l.ssts[i].GetId(), l.ssts[j].GetId())
+	})
 }

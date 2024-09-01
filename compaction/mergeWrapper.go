@@ -8,19 +8,21 @@ import (
 
 var _ common.Iterator = (*TwoLevelIter)(nil)
 
-// MergeWrapperIterer iterates over two common.Iterator and choses
-// smaller key from each iteration resulting in sorted table
+// TwoLevelIter iterates over two common.Iterator and choses
+// smaller key from each iteration resulting in sorted strings table
 type TwoLevelIter struct {
-	current common.Iterator
-	other   common.Iterator
+	first  common.Iterator
+	second common.Iterator
+
+	pickFirst bool
 }
 
 func NewTwoLevelIter(i1, i2 common.Iterator) (*TwoLevelIter, error) {
 	mi := &TwoLevelIter{}
 	seekIfNotValid := func(i common.Iterator) error {
-		if !i.Valid() {
+		if i != nil && !i.Valid() {
 			_, _, err := i.SeekToFirst()
-			if err != nil {
+			if err != nil && !errors.Is(err, common.ErrIteratorExhausted) {
 				return err
 			}
 		}
@@ -32,80 +34,116 @@ func NewTwoLevelIter(i1, i2 common.Iterator) (*TwoLevelIter, error) {
 	if err := seekIfNotValid(i2); err != nil {
 		return nil, err
 	}
-	mi.current, mi.other = i1, i2
+	mi.first, mi.second = i1, i2
 	return mi, nil
 }
 
-func (mi *TwoLevelIter) setCurrent() error {
-	bothValid := func() bool {
-		return mi.current.Valid() && mi.other.Valid()
+func (mi *TwoLevelIter) pick() error {
+	if !mi.firstValid() && !mi.secondValid() {
+		return common.ErrIteratorExhausted
 	}
-	// todo: for now we must dump to memory all keys event,
-	// when mvcc is fully implemented we will be able to discard keys whose sequenceNumber is smaller
-	// then globally  visible sequence number
-	if bothValid() && mi.current.Key().Equal(mi.other.Key()) {
-		_, _, err := mi.other.Next()
+	if !mi.firstValid() {
+		mi.pickFirst = false
+		return nil
+	}
+	if !mi.secondValid() {
+		mi.pickFirst = true
+		return nil
+	}
+	if mi.first.Key() == nil && mi.second.Key() == nil {
+		return common.ErrIteratorExhausted
+	}
+	mi.pickFirst = mi.first.Key().Compare(mi.second.Key()) < 0
+	return nil
+}
+
+func (mi *TwoLevelIter) firstValid() bool {
+	return mi.first != nil && mi.first.Valid()
+}
+
+func (mi *TwoLevelIter) secondValid() bool {
+	return mi.second != nil && mi.second.Valid()
+}
+
+func (mi *TwoLevelIter) moveSecond() error {
+	if mi.firstValid() && mi.secondValid() && mi.first.Key().SoftEqual(mi.second.Key()) {
+		_, _, err := mi.second.Next()
 		if err != nil {
 			if errors.Is(err, common.ErrIteratorExhausted) {
-				mi.swap()
+				mi.second = nil
 				return nil
 			}
 			return err
 		}
 	}
-	if !mi.other.Valid() {
-		return nil
-	}
-	if !mi.current.Valid() {
-		mi.swap()
-		return nil
-	}
-	if mi.current.Key().Compare(mi.other.Key()) > 0 {
-		mi.swap()
-	}
 	return nil
 }
 
 func (mi *TwoLevelIter) Valid() bool {
-	return mi.current.Valid() || mi.other.Valid()
+	if mi == nil {
+		return false
+	}
+	return mi.firstValid() || mi.secondValid()
 }
 
 func (mi *TwoLevelIter) Next() (*common.InternalKey, []byte, error) {
-	_, _, err := mi.current.Next()
+	if mi.pickFirst {
+		_, _, err := mi.first.Next()
+		if err != nil {
+			if !errors.Is(err, common.ErrIteratorExhausted) {
+				return nil, nil, err
+			}
+			mi.first = nil
+		}
+	} else {
+		_, _, err := mi.second.Next()
+		if err != nil {
+			if !errors.Is(err, common.ErrIteratorExhausted) {
+				return nil, nil, err
+			}
+			mi.second = nil
+		}
+	}
+	err := mi.pick()
 	if err != nil {
 		return nil, nil, err
 	}
-	err = mi.setCurrent()
+	err = mi.moveSecond()
 	if err != nil {
 		return nil, nil, err
 	}
-	return mi.current.Key(), mi.current.Value(), nil
+	return mi.Key(), mi.Value(), nil
 }
 
 func (mi *TwoLevelIter) SeekToFirst() (*common.InternalKey, []byte, error) {
-	_, _, err := mi.current.SeekToFirst()
+	_, _, err := mi.first.SeekToFirst()
+	if err != nil && !errors.Is(err, common.ErrIteratorExhausted) {
+		return nil, nil, err
+	}
+	_, _, err = mi.second.SeekToFirst()
+	if err != nil && !errors.Is(err, common.ErrIteratorExhausted) {
+		return nil, nil, err
+	}
+	err = mi.pick()
 	if err != nil {
 		return nil, nil, err
 	}
-	_, _, err = mi.other.SeekToFirst()
-	if err != nil {
-		return nil, nil, err
+	if !mi.pickFirst {
+		return mi.second.Key(), mi.second.Value(), nil
 	}
-	err = mi.setCurrent()
-	if err != nil {
-		return nil, nil, err
-	}
-	return mi.current.Key(), mi.current.Value(), nil
+	return mi.first.Key(), mi.first.Value(), nil
 }
 
 func (mi *TwoLevelIter) Key() *common.InternalKey {
-	return mi.current.Key()
+	if !mi.pickFirst {
+		return mi.second.Key()
+	}
+	return mi.first.Key()
 }
 
 func (mi *TwoLevelIter) Value() []byte {
-	return mi.current.Value()
-}
-
-func (mi *TwoLevelIter) swap() {
-	mi.current, mi.other = mi.other, mi.current
+	if !mi.pickFirst {
+		return mi.second.Value()
+	}
+	return mi.first.Value()
 }

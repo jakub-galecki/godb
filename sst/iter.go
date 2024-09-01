@@ -2,8 +2,9 @@ package sst
 
 import (
 	"errors"
-	"github.com/jakub-galecki/godb/common"
 	"io"
+
+	"github.com/jakub-galecki/godb/common"
 )
 
 var _ common.Iterator = (*SSTableIter)(nil)
@@ -105,5 +106,8 @@ func (it *SSTableIter) SeekToFirst() (*common.InternalKey, []byte, error) {
 }
 
 func (it *SSTableIter) Valid() bool {
+	if it == nil {
+		return false
+	}
 	return it.blkIter.Valid()
 }

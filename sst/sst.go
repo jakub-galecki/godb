@@ -30,6 +30,10 @@ func (s *SST) GetId() string {
 	return s.sstId
 }
 
+func (s *SST) GetPath() string {
+	return s.fref.Name()
+}
+
 func (s *SST) GetMin() []byte {
 	if s.meta == nil {
 		return nil

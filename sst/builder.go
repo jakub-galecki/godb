@@ -15,7 +15,8 @@ import (
 
 type Builder interface {
 	Add(*common.InternalKey, []byte) Builder
-	Finish() *SST
+	Finish() (*SST, error)
+	GetSize() uint64
 }
 
 type builder struct {
@@ -63,7 +64,7 @@ func (bdr *builder) Add(key *common.InternalKey, value []byte) Builder {
 	return bdr
 }
 
-func (bdr *builder) Finish() *SST {
+func (bdr *builder) Finish() (*SST, error) {
 	var (
 		meta  = newTableMeta()
 		start = time.Now()
@@ -80,7 +81,7 @@ func (bdr *builder) Finish() *SST {
 	bfSize, err := bdr.bf.WriteTo(bdr.file)
 	//logger.Debugf("SST::FINISH bfsize: %d", bfSize)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	// meta
@@ -92,7 +93,7 @@ func (bdr *builder) Finish() *SST {
 	meta.indexOffset = bdr.offset
 	n, err := bdr.file.Write(bdr.index.buf[:bdr.index.off])
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	meta.indexSize = uint64(n)
@@ -102,28 +103,28 @@ func (bdr *builder) Finish() *SST {
 	meta.initKeysInfo(bdr.min, bdr.max)
 	n, err = meta.encodeKeysInfo(bdr.file)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	meta.keysInfoSize = uint64(n)
 
 	if err := meta.writeTo(bdr.file); err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	if err := bdr.file.Flush(); err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	err = bdr.file.GetFileRef().Close()
 	if err != nil {
 		bdr.logger.Error().Err(err).Msg("closing file after SST builder finish")
-		panic(err)
+		return nil, err
 	}
 
 	fref, err := os.Open(path.Join(bdr.dir, bdr.sstId+".db"))
 	if err != nil {
 		bdr.logger.Error().Err(err).Msg("opeing file for read after SST builder finish")
-		panic(err)
+		return nil, err
 	}
 	st, _ := fref.Stat()
 	bdr.logger.Event("sstBuilder.Finish", start)
@@ -135,7 +136,7 @@ func (bdr *builder) Finish() *SST {
 		sstId:  bdr.sstId,
 		logger: bdr.logger,
 		fsz:    st.Size(),
-	}
+	}, nil
 }
 
 func (bdr *builder) addIndex(minKey []byte) {

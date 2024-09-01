@@ -16,17 +16,16 @@ import (
 //go:generate msgp
 
 type Manifest struct {
-	f          *os.File
-	mu         sync.Mutex
-	Id         string
-	L0         []string   // id's of the sst files
-	Levels     [][]string // id's of the sst files
-	Table      string
-	CreatedAt  int64
-	Path       string
-	BlockSize  uint64
-	LevelCount int
-	MaxLevels  int
+	f         *os.File
+	mu        sync.Mutex
+	Id        string
+	L0        []string   // id's of the sst files
+	Levels    [][]string // id's of the sst files
+	Table     string
+	CreatedAt int64
+	Path      string
+	BlockSize uint64
+	MaxLevels int
 	// seqNum is a global counter for memtable writes to distinguish between new and old entries.
 	SeqNum uint64
 	// nextFileNumber indicates next file number that will be assigned to wal and memtable.
@@ -41,17 +40,16 @@ func newManifest(id string, dir, table string, blockSize uint64, maxLevels int) 
 	}
 
 	m := &Manifest{
-		Id:         id,
-		f:          mFile,
-		L0:         []string{},
-		Levels:     make([][]string, 0, maxLevels),
-		Table:      table,
-		CreatedAt:  time.Now().UnixNano(),
-		Path:       dir,
-		BlockSize:  blockSize,
-		LevelCount: 0,
-		MaxLevels:  maxLevels,
-		SeqNum:     1,
+		Id:        id,
+		f:         mFile,
+		L0:        []string{},
+		Levels:    make([][]string, 0, maxLevels),
+		Table:     table,
+		CreatedAt: time.Now().UnixNano(),
+		Path:      dir,
+		BlockSize: blockSize,
+		MaxLevels: maxLevels,
+		SeqNum:    1,
 	}
 
 	return m, nil

@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jakub-galecki/godb/log"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
@@ -20,7 +22,7 @@ func cleanup(dir string) {
 
 func TestCore(t *testing.T) {
 	dbName := time.Now().Format(time.RFC3339Nano)
-	lsmt, err := Open(dbName, WithDbPath(os.TempDir()))
+	lsmt, err := Open(dbName, WithDbPath(os.TempDir()), WithLogger(log.JsonLogger))
 	assert.NoError(t, err)
 	for i := 0; i < 100000; i++ {
 		err := lsmt.Set([]byte(fmt.Sprintf("foo.%d", i)), []byte(fmt.Sprintf("bar.%d", i)))

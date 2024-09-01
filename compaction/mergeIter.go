@@ -67,6 +67,9 @@ func NewMergeIter(iters ...common.Iterator) (*MergeIter, error) {
 }
 
 func (mi *MergeIter) Next() (ikey, []byte, error) {
+	if len(mi.heap) == 0 {
+		return nil, nil, common.ErrIteratorExhausted
+	}
 	_, _, err := mi.heap[0].Next()
 	if err != nil {
 		heap.Remove(&mi.heap, 0)
@@ -94,6 +97,9 @@ func (mi *MergeIter) Value() []byte {
 }
 
 func (mi *MergeIter) Valid() bool {
+	if mi == nil {
+		return false
+	}
 	if mi.heap[0] == nil {
 		return false
 	}
@@ -113,7 +119,10 @@ func (mi *MergeIter) maybeMoveIters() {
 		return
 	}
 	cur := mi.heap[0]
-	// check that other iters dont have the same key
+	if cur == nil {
+		heap.Remove(&mi.heap, 0)
+	}
+	// check that second iters dont have the same key
 	for i, it := range mi.heap[1:] {
 		if cur.Key().SoftEqual(it.Key()) {
 			_, _, err := it.Next()

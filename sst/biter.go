@@ -34,6 +34,9 @@ func (b *BlockIterator) Next() (*common.InternalKey, []byte, error) {
 }
 
 func (b *BlockIterator) Valid() bool {
+	if b == nil {
+		return false
+	}
 	if b.cure == nil || b.cure.rawKey == nil {
 		return false
 	}

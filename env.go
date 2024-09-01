@@ -2,7 +2,6 @@ package godb
 
 import (
 	"github.com/jakub-galecki/godb/sst"
-	"slices"
 	"sync/atomic"
 )
 
@@ -63,11 +62,12 @@ func (env *dbEnv) append(l int, tables ...*sst.SST) {
 // requires to hold db lock
 func (env *dbEnv) remove(l int, tables ...*sst.SST) {
 	remove := func(arr []string, id string) []string {
-		i, found := slices.BinarySearch(arr, id)
-		if !found {
-			return arr
+		for i, tableId := range arr {
+			if tableId == id {
+				return append(arr[:i], arr[i+1:]...)
+			}
 		}
-		return append(arr[:i], arr[i+1:]...)
+		return arr
 	}
 	// todo: optimize, for now we copy whole slice for each table
 	for _, table := range tables {

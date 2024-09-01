@@ -3,7 +3,7 @@ package sst
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
+	"github.com/jakub-galecki/godb/common"
 )
 
 var (
@@ -101,7 +101,7 @@ func (i *index) find(key []byte) (*indexEntry, error) {
 	}
 
 	if idx < 0 {
-		return nil, fmt.Errorf("not found in sparse index")
+		return nil, common.ErrKeyNotFound
 	}
 
 	return i.off[idx], nil

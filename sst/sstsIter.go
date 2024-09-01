@@ -1,7 +1,9 @@
 package sst
 
 import (
+	"bytes"
 	"errors"
+	"sort"
 
 	"github.com/jakub-galecki/godb/common"
 )
@@ -16,9 +18,17 @@ type SSTablesIter struct {
 
 // NewSSTablesIter iterates over multiple sstables without overlapping keys
 func NewSSTablesIter(ssts ...*SST) (*SSTablesIter, error) {
+	init := make([]*SST, 0, len(ssts))
+	for _, sst := range ssts {
+		init = append(init, sst)
+	}
+	sort.SliceStable(init, func(i, j int) bool {
+		return bytes.Compare(init[i].GetMin(), init[j].GetMin()) < 0
+	})
+
 	sit := &SSTablesIter{
 		cur:  nil,
-		init: ssts,
+		init: init,
 	}
 	return sit, nil
 }
@@ -52,6 +62,7 @@ func (sit *SSTablesIter) SeekToFirst() (*common.InternalKey, []byte, error) {
 	if len(sit.init) == 0 {
 		return nil, nil, common.ErrIteratorExhausted
 	}
+	sit.i = 0
 	if err := sit.setIterator(); err != nil {
 		return nil, nil, err
 	}

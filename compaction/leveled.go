@@ -102,12 +102,13 @@ func (l *LeveledCompaction) triggerHigherLevelCompaction(req *CompactionReq) boo
 }
 
 func (l *LeveledCompaction) compactL0(req *CompactionReq) (*CompactionReq, error) {
+	l0tables := req.L0.GetTables()
 	targetLevel := req.Levels[l.opt.BaseLevel-1]
 	baseLevelSst := targetLevel.GetTables()
-	overlapping := l.getOverlappingTables(req.L0.GetTables(), baseLevelSst)
+	overlapping := l.getOverlappingTables(l0tables, baseLevelSst)
 	level0iterators := func() []common.Iterator {
-		res := make([]common.Iterator, 0, len(req.L0.GetTables()))
-		for _, table := range req.L0.GetTables() {
+		res := make([]common.Iterator, 0, len(l0tables))
+		for _, table := range l0tables {
 			it, err := sst.NewSSTableIter(table)
 			if err != nil {
 				req.Logger.Err(err).Str("sst_id", table.GetId()).Msg("cannot create iterator from sst")
@@ -131,7 +132,7 @@ func (l *LeveledCompaction) compactL0(req *CompactionReq) (*CompactionReq, error
 	req.Upper = baseIter
 	req.IsL0Compaction = true
 	req.SourceLevel = req.L0
-	req.SourceTables = req.L0.GetTables()
+	req.SourceTables = l0tables
 	req.TargetLevel = targetLevel
 	req.TargetTables = overlapping
 	return req, nil
@@ -194,10 +195,7 @@ func (l *LeveledCompaction) getOverlappingTables(lower, upper []*sst.SST) []*sst
 	res := make([]*sst.SST, 0)
 	for _, table := range upper {
 		sstMin, sstMax := table.GetMin(), table.GetMax()
-		//     lowerMin.....lowerMax
-		//  lowerMiin.......lowerMax
-		if bytes.Compare(sstMin, lowerMax) <= 0 &&
-			bytes.Compare(sstMax, lowerMin) >= 0 {
+		if !(bytes.Compare(sstMin, lowerMax) > 0 || bytes.Compare(sstMax, lowerMin) < 0) {
 			res = append(res, table)
 		}
 	}

@@ -1,16 +1,32 @@
 package godb
 
 import (
+	"encoding/json"
+	"errors"
+	"os"
 	"strconv"
 
 	"github.com/jakub-galecki/godb/compaction"
 	"github.com/jakub-galecki/godb/sst"
 )
 
+const estimateBloomSz = 100000
+
 type compactionRes struct {
 	*compaction.CompactionReq
 
 	outTables []*sst.SST
+}
+
+func (cr *compactionRes) Json() []byte {
+	repr := make(map[string]any)
+	outTables := make([]string, 0, len(cr.outTables))
+	for _, table := range cr.outTables {
+		outTables = append(outTables, table.GetId())
+	}
+	repr["out_tables"] = outTables
+	res, _ := json.Marshal(repr)
+	return res
 }
 
 // calling function must hold the l.mutex
@@ -19,20 +35,39 @@ func (l *db) compact(req *compaction.CompactionReq) (*compactionRes, error) {
 	if err != nil {
 		return nil, err
 	}
+	cs := &compactionRes{
+		CompactionReq: req,
+		outTables:     make([]*sst.SST, 0),
+	}
 	sstid := l.getNextFileNum()
-	// todo : check sst size
 	l.mutex.Unlock()
+	defer l.mutex.Lock()
 	bd := sst.NewBuilder(req.Logger, req.TargetLevel.GetDir(),
-		l.opts.sstSize, strconv.FormatUint(sstid, 10)) // max sst size
-	for k, v, err := it.SeekToFirst(); err == nil; k, v, err = it.Next() {
+		estimateBloomSz, strconv.FormatUint(sstid, 10)) // max sst size
+	for k, v, err := it.SeekToFirst(); err == nil && k != nil; k, v, err = it.Next() {
+		if bd.GetSize() >= l.opts.sstSize {
+			out, err := bd.Finish()
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				return nil, err
+			}
+			if err == nil {
+				cs.outTables = append(cs.outTables, out)
+			}
+			sstid = l.getNextFileNum()
+			bd = sst.NewBuilder(req.Logger, req.TargetLevel.GetDir(), estimateBloomSz, strconv.FormatUint(sstid, 10))
+		}
 		bd.Add(k, v)
 	}
-	l.mutex.Lock()
-	out := bd.Finish()
-	return &compactionRes{
-		CompactionReq: req,
-		outTables:     []*sst.SST{out},
-	}, nil
+	if bd.GetSize() > 0 {
+		out, err := bd.Finish()
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
+		if err == nil {
+			cs.outTables = append(cs.outTables, out)
+		}
+	}
+	return cs, nil
 }
 
 // calling function must hold the l.mutex
@@ -44,11 +79,17 @@ func (l *db) applyCompaction(res *compactionRes) {
 		l.opts.logger.Error().Err(err).Msg("failed to apply env after compaction")
 		return
 	}
-	l.refresh(l.manifest)
 	res.SourceLevel.Remove(res.SourceTables)
 	res.TargetLevel.Remove(res.TargetTables)
 	res.TargetLevel.Append(res.outTables)
-	l.cleaner.removeSync(l.getDeadFiles())
+	toDel := make([]string, 0)
+	for _, table := range res.SourceTables {
+		toDel = append(toDel, table.GetPath())
+	}
+	for _, table := range res.TargetTables {
+		toDel = append(toDel, table.GetPath())
+	}
+	l.cleaner.removeSync(toDel)
 }
 
 func (l *db) getCompactionReq() *compaction.CompactionReq {

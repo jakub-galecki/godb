@@ -3,7 +3,8 @@ package sst
 import (
 	"cmp"
 	"errors"
-	"slices"
+	"github.com/jakub-galecki/godb/common"
+	"sort"
 	"strconv"
 	"sync"
 
@@ -39,7 +40,7 @@ func (l *Level) Get(key []byte) ([]byte, bool) {
 	for _, tbl := range l.ssts {
 		val, err := tbl.Get(key)
 		if err != nil {
-			if errors.Is(err, ErrNotFoundInBloom) {
+			if errors.Is(err, ErrNotFoundInBloom) || errors.Is(err, common.ErrKeyNotFound) {
 				continue
 			}
 			l.logger.Error().Str("sstId", tbl.GetId()).Err(err).Msg("error while getting data from sst")
@@ -64,6 +65,7 @@ func (l *Level) AddMemtable(mem *memtable.MemTable) (*SST, error) {
 	l.ssts = append(l.ssts, table)
 	l.curId++
 	l.mutex.Unlock()
+	l.sort()
 	return table, nil
 }
 
@@ -71,7 +73,11 @@ func (l *Level) GetTables() []*SST {
 	l.mutex.Lock()
 	ssts := l.ssts
 	l.mutex.Unlock()
-	return ssts
+	res := make([]*SST, len(ssts))
+	for i, sst := range ssts {
+		res[i] = sst
+	}
+	return res
 }
 
 func (l *Level) LoadTables(ssts []string) error {
@@ -88,15 +94,17 @@ func (l *Level) LoadTables(ssts []string) error {
 }
 
 func (l *Level) Remove(ssts []*SST) {
-	for _, table := range ssts {
-		i, found := slices.BinarySearchFunc(l.ssts, table, func(a, b *SST) int {
-			return cmp.Compare(a.GetId(), b.GetId())
-		})
-		if !found {
-			continue
+	rem := func(id string) {
+		for i, table := range l.ssts {
+			if table.GetId() == id {
+				l.ssts = append(l.ssts[:i], l.ssts[i+1:]...)
+			}
 		}
-		l.ssts = append(l.ssts[:i], l.ssts[i+1:]...)
 	}
+	for _, table := range ssts {
+		rem(table.GetId())
+	}
+	l.sort()
 }
 
 func (l *Level) Append(ssts []*SST) {
@@ -117,7 +125,7 @@ func (l *Level) GetOldest() *SST {
 }
 
 func (l *Level) sort() {
-	slices.SortStableFunc(l.ssts, func(a, b *SST) int {
-		return cmp.Compare(b.GetId(), a.GetId())
+	sort.SliceStable(l.ssts, func(i, j int) bool {
+		return !cmp.Less(l.ssts[i].GetId(), l.ssts[j].GetId())
 	})
 }

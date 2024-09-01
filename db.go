@@ -48,6 +48,8 @@ type db struct {
 	cleaner    *cleaner
 	compaction *compaction.LeveledCompaction
 	compacting atomic.Bool
+	compactWg  sync.WaitGroup
+	exitChan   chan struct{}
 }
 
 func Open(name string, opts ...DbOpt) (*db, error) {
@@ -61,6 +63,7 @@ func Open(name string, opts ...DbOpt) (*db, error) {
 		blockCache: cache.New(cache.WithVerbose[[]byte](true)),
 		opts:       dbOpts,
 		cleaner:    newClener(),
+		exitChan:   make(chan struct{}),
 	}
 	switch _, err := os.Stat(dbOpts.path); {
 	case err == nil:
@@ -76,7 +79,7 @@ func Open(name string, opts ...DbOpt) (*db, error) {
 		}
 	}
 	d.compaction = compaction.NewLeveledCompaction(compaction.DefaultOptions)
-	go d.drainSink()
+	go d.drainSink(d.exitChan)
 	return &d, nil
 }
 
@@ -89,9 +92,6 @@ func (l *db) recover() (err error) {
 	m, err := readManifest(l.opts.path)
 	if err != nil {
 		return err
-	}
-	if m.Id != l.id {
-		return errors.New("id hash did not match")
 	}
 	// // if DEBUG = true
 	if true {
@@ -251,6 +251,8 @@ func (l *db) loadLevels() (err error) {
 }
 
 func (l *db) Close() error {
+	l.exitChan <- struct{}{}
+	l.compactWg.Wait()
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	if err := l.applyEnv(l); err != nil {

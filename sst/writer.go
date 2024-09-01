@@ -18,7 +18,10 @@ func WriteMemTable(logger *log.Logger, mem *memtable.MemTable, path string, cach
 		sstBuilder = sstBuilder.Add(k, v)
 	}
 
-	sst := sstBuilder.Finish()
+	sst, err := sstBuilder.Finish()
+	if err != nil {
+		return nil, err
+	}
 	sst.blockCache = cache
 	logger.Event("WriteMemTable", start)
 	return sst, nil
